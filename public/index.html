@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File d'appel setter — Les Instapreneurs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- BARRE SUPÉRIEURE -->
+<header class="topbar">
+  <div class="brand">⚡ Les Instapreneurs <span>· Espace setter</span></div>
+  <nav class="tabs">
+    <button class="tab active" id="tabAppels" onclick="switchView('appels')">📞 File d'appel</button>
+    <button class="tab" id="tabStats" onclick="switchView('stats')">📊 Statistiques</button>
+  </nav>
+</header>
+
+<div class="demo-banner" id="demoBanner">
+  ⚠️ Mode démo — backend Notion non connecté. Les données affichées sont fictives et rien n'est sauvegardé.
+</div>
+
+<!-- ════════════════ VUE 1 — FILE D'APPEL ════════════════ -->
+<div class="view active" id="viewAppels">
+<div class="layout" id="layout">
+
+  <!-- COLONNE GAUCHE — liste des leads -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="dot-live"></div>
+      <span class="sidebar-title">File d'appel</span>
+      <span class="leads-count" id="leadsCount">0</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-cell">
+        <div class="stat-val green" id="statPresents">0</div>
+        <div class="stat-lbl">Présents</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val orange" id="statAbsents">0</div>
+        <div class="stat-lbl">Absents</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" id="statRdv">0</div>
+        <div class="stat-lbl">RDV bookés</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" id="statTaux">0%</div>
+        <div class="stat-lbl">Taux conv.</div>
+      </div>
+    </div>
+    <div class="leads-list" id="leadsList">
+      <div class="list-placeholder">Chargement de la file…</div>
+    </div>
+  </aside>
+
+  <!-- COLONNE DROITE — script d'appel -->
+  <main class="main" id="mainArea">
+
+    <div class="empty-state" id="emptyState">
+      <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.68a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .94h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+      <div class="empty-title">Choisis un lead pour démarrer</div>
+      <div class="empty-sub">Les profils 🔥 présents au webinaire sont en tête de liste :<br>commence toujours par eux, ce sont les plus chauds.</div>
+    </div>
+
+    <div id="scriptArea" style="display:none;">
+
+      <!-- En-tête lead -->
+      <div class="script-header">
+        <button class="btn-back" onclick="closeLead()" title="Retour à la liste">←</button>
+        <div class="lead-avatar" id="leadAvatar">?</div>
+        <div class="lead-info">
+          <div class="lead-fullname" id="leadName">—</div>
+          <div class="lead-meta" id="leadMeta">—</div>
+        </div>
+        <div class="timer-badge">
+          <div class="dot-live"></div>
+          <span class="timer-val" id="timerDisplay">00:00</span>
+        </div>
+      </div>
+
+      <!-- Infos lead -->
+      <div class="lead-infos-bar">
+        <div class="info-chip"><span class="lbl">Tél</span> <a id="infoTel" href="#">—</a></div>
+        <div class="info-chip"><span class="lbl">Email</span> <span id="infoEmail">—</span></div>
+        <div class="info-chip"><span class="lbl">Insta</span> <a id="infoIG" href="#" target="_blank" rel="noopener">—</a></div>
+        <div class="info-chip"><span class="lbl">Niveau</span> <span id="infoNiveau">—</span></div>
+        <div class="info-chip"><span class="lbl">Situation</span> <span id="infoSituation">—</span></div>
+        <div class="info-chip"><span class="lbl">Score</span> <span id="infoScore" class="score-strong">—</span></div>
+      </div>
+
+      <!-- Briefing IA -->
+      <div class="briefing-bar">
+        <span class="briefing-label">🧠 Briefing</span>
+        <span id="infoBriefing">Pas encore de briefing pour ce lead.</span>
+      </div>
+
+      <div class="script-body">
+
+        <!-- ÉTAPE 0 — CONTACT -->
+        <div class="step active-step" id="step0">
+          <div class="step-header">
+            <div class="step-num">Étape 0 — Le prospect a-t-il décroché ?</div>
+            <div class="q-label">A répondu ?</div>
+            <div class="chips" id="chipsRepondu"></div>
+            <div class="step-divider"></div>
+            <div class="q-label">Nombre de tentatives</div>
+            <div class="score-row" id="tentativesRow"></div>
+            <div class="sms-block hidden" id="smsBlock">
+              <div class="sms-title">📩 Pas de réponse — SMS à envoyer</div>
+              <div class="sms-text" id="speechSms"></div>
+              <button class="btn-copy" onclick="copySms()">📋 Copier le SMS</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 1 — OUVERTURE -->
+        <div class="step hidden" id="step1">
+          <div class="step-header">
+            <div class="step-num">Étape 1 — Ouverture</div>
+            <div class="speech"><p id="speechOuverture"></p></div>
+            <div class="q-label">A assisté à la conférence ?</div>
+            <div class="chips" id="chipsVuWebi"></div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 2A — ABSENT : RÉINSCRIRE OU CALL -->
+        <div class="step hidden" id="step2non">
+          <div class="step-header">
+            <div class="step-num">Branche absent — Réinscrire ou booker un call</div>
+            <div class="speech"><p id="speechAbsent"></p></div>
+            <div class="q-label">Que préfère le prospect ?</div>
+            <div class="chips" id="chipsReinscription"></div>
+            <div class="reinscrit-block" id="reinscritBlock">
+              <strong>✔️ Action System.io :</strong> réinscrire ce lead au webinaire de lundi prochain —
+              poser le tag <code>Réinscrit webi</code> sur son contact et lui envoyer le lien d'inscription par message.
+            </div>
+            <div class="booking-section hidden" id="bookingSectionAbs">
+              <div class="booking-title">📅 Réserver l'appel avec l'expert</div>
+              <div class="rdv-inputs">
+                <div class="field-g">
+                  <span class="field-lbl">Date</span>
+                  <input type="date" id="rdvDateAbs">
+                </div>
+                <div class="field-g">
+                  <span class="field-lbl">Heure</span>
+                  <input type="time" id="rdvTimeAbs">
+                </div>
+              </div>
+              <button class="btn-calendly" onclick="openCalendly()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Ouvrir Calendly
+              </button>
+              <button class="btn-confirm" onclick="confirmerRDV('Abs')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Confirmer le RDV — lead gagné
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 2B — PRÉSENT : RESSENTI -->
+        <div class="step hidden" id="step2oui">
+          <div class="step-header">
+            <div class="step-num">Étape 2 — Son ressenti sur la conférence</div>
+            <div class="speech"><p id="speechRessenti"></p></div>
+
+            <div class="q-label">Note donnée /10</div>
+            <div class="score-row" id="scoreRow"></div>
+
+            <div class="step-divider"></div>
+
+            <div class="speech"><p id="speechManques"></p></div>
+            <div class="chips" id="chipsManques"></div>
+
+            <div class="step-divider"></div>
+
+            <div class="q-label">Ce qui l'a convaincu·e <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="chips" id="chipsPositifs"></div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 3 — QUALIFICATION -->
+        <div class="step hidden" id="step3">
+          <div class="step-header">
+            <div class="step-num">Étape 3 — Qui sommes-nous &amp; objectif</div>
+            <div class="speech"><p id="speechProfil"></p></div>
+
+            <div class="q-label">Situation professionnelle</div>
+            <div class="chips" id="chipsSituation"></div>
+
+            <div class="step-divider"></div>
+
+            <div class="q-label">Son objectif sur Instagram <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="chips" id="chipsObjectifs"></div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 4 — RDV AVEC L'EXPERT -->
+        <div class="step hidden" id="step5">
+          <div class="step-header">
+            <div class="step-num">Étape 4 — Proposer l'appel avec l'expert</div>
+            <div class="speech"><p id="speechRdv"></p></div>
+
+            <div class="q-label">Issue de l'appel</div>
+            <div class="chips" id="chipsStatutAppel"></div>
+
+            <div class="booking-section hidden" id="bookingSection">
+              <div class="booking-title">📅 Réserver l'appel stratégique</div>
+              <div class="rdv-inputs">
+                <div class="field-g">
+                  <span class="field-lbl">Date</span>
+                  <input type="date" id="rdvDate">
+                </div>
+                <div class="field-g">
+                  <span class="field-lbl">Heure</span>
+                  <input type="time" id="rdvTime">
+                </div>
+              </div>
+              <button class="btn-calendly" onclick="openCalendly()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Ouvrir Calendly
+              </button>
+              <button class="btn-confirm" onclick="confirmerRDV()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Confirmer le RDV — lead gagné
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTES LIBRES -->
+        <div class="step" id="stepNotes">
+          <div class="step-header">
+            <div class="step-num">Notes d'appel</div>
+            <textarea id="notesLibres" rows="3" placeholder="Objections entendues, infos clés, contexte particulier, à rappeler quand…"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /script-body -->
+
+      <div class="save-bar">
+        <span class="save-status" id="saveStatus"></span>
+        <button class="btn-save" onclick="saveAll()">💾 Sauvegarder la fiche</button>
+      </div>
+
+    </div><!-- /scriptArea -->
+  </main>
+
+</div><!-- /layout -->
+</div><!-- /viewAppels -->
+
+<!-- ════════════════ VUE 2 — STATISTIQUES ════════════════ -->
+<div class="view" id="viewStats">
+  <div class="stats-page">
+    <h2 class="stats-title">Tableau de bord</h2>
+    <p class="stats-sub" id="statsUpdated">Chargement…</p>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-big" id="stTotal">—</div><div class="stat-name">Leads au total</div></div>
+      <div class="stat-card"><div class="stat-big green" id="stPresents">—</div><div class="stat-name">🔥 Présents webi</div></div>
+      <div class="stat-card"><div class="stat-big orange" id="stAbsents">—</div><div class="stat-name">📭 Absents webi</div></div>
+      <div class="stat-card"><div class="stat-big green" id="stRdv">—</div><div class="stat-name">✅ RDV bookés</div></div>
+      <div class="stat-card"><div class="stat-big" id="stTaux">—</div><div class="stat-name">Taux de conversion</div></div>
+      <div class="stat-card"><div class="stat-big" id="stScore">—</div><div class="stat-name">Score chaleur moyen</div></div>
+      <div class="stat-card"><div class="stat-big gray" id="stInjoignables">—</div><div class="stat-name">❌ Injoignables</div></div>
+      <div class="stat-card"><div class="stat-big" id="stAppels">—</div><div class="stat-name">Fiches traitées aujourd'hui</div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">RDV bookés — 7 derniers jours</div>
+      <canvas id="chartRdv" height="110"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

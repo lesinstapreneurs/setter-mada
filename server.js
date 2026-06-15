@@ -1,0 +1,35 @@
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const { ensureSetterDatabase } = require('./services/notion');
+
+const app = express();
+
+// rawBody conservé pour la vérification de signature Calendly
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/webhook', require('./routes/webhooks'));
+app.use('/api', require('./routes/api'));
+
+app.get('/health', (req, res) => res.json({ ok: true }));
+
+const PORT = process.env.PORT || 3000;
+
+(async () => {
+  if (process.env.NOTION_TOKEN) {
+    try {
+      const id = await ensureSetterDatabase();
+      console.log(`📋 Base « Prospects webinaire » connectée : ${id}`);
+    } catch (e) {
+      console.error('⚠️ Init Notion :', e.message);
+      console.error('   → L\'app démarre quand même, le frontend tournera en mode démo.');
+    }
+  } else {
+    console.warn('⚠️ NOTION_TOKEN non défini — frontend en mode démo (copie .env.example vers .env).');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Setter app — Les Instapreneurs : http://localhost:${PORT}`);
+  });
+})();
