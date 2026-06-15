@@ -141,6 +141,8 @@ async function patchLead(id, payload) {
   if (l) Object.assign(l, normalizeDemoPatch(payload));
 }
 
+// Reflète le payload dans l'objet lead local, pour que la restitution
+// (réouverture d'une fiche) montre ce qui vient d'être saisi sans recharger.
 function normalizeDemoPatch(p) {
   const out = {};
   if ('statut' in p) out.statut = p.statut;
@@ -148,6 +150,10 @@ function normalizeDemoPatch(p) {
   if ('notes' in p) out.notes = p.notes;
   if ('financement' in p) out.financement = p.financement;
   if ('situation_pro' in p) out.situation_pro = p.situation_pro;
+  if ('manques_webi' in p) out.manques = p.manques_webi;
+  if ('points_positifs' in p) out.positifs = p.points_positifs;
+  if ('objectif' in p) out.objectif = p.objectif;
+  if ('objection' in p) out.objection = p.objection;
   return out;
 }
 
@@ -241,10 +247,93 @@ async function updateSidebarStats() {
   document.getElementById('statTaux').textContent = taux;
 }
 
+/* ── Restitution d'une fiche déjà travaillée ───────────────────────────── */
+function splitList(s) {
+  return String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+}
+function preselectMulti(containerId, values) {
+  const el = document.getElementById(containerId);
+  if (!el || !values.length) return;
+  [...el.children].forEach((c) => { if (values.includes(c.dataset.value)) c.classList.add('selected-multi'); });
+}
+function preselectSingle(containerId, value, toneClass) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const chip = [...el.children].find((c) => c.dataset.value === value);
+  if (chip) chip.classList.add(toneClass);
+}
+function reveal(id, done) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('hidden');
+  if (done) el.classList.add('done-step');
+}
+
+// Re-affiche dans le script tout ce qui a déjà été saisi pour ce lead.
+function prefillFromLead(lead) {
+  // Étape 0 — tentatives
+  const nt = lead.nb_tentatives || 0;
+  if (nt >= 1 && nt <= 3) {
+    const btn = [...document.getElementById('tentativesRow').children][nt - 1];
+    if (btn) btn.classList.add('sel-hi');
+  }
+  // Étape 2 — ressenti
+  const manques = splitList(lead.manques);
+  const positifs = splitList(lead.positifs);
+  preselectMulti('chipsManques', manques); call.manques = manques;
+  preselectMulti('chipsPositifs', positifs); call.positifs = positifs;
+  // Étape 3 — raisons (options connues + champ « Autre »)
+  const reasons = splitList(lead.objectif);
+  const known = reasons.filter((r) => OPTIONS.objectifs.includes(r));
+  const autre = reasons.filter((r) => !OPTIONS.objectifs.includes(r)).join(', ');
+  preselectMulti('chipsObjectifs', known); call.objectifs = known;
+  if (autre) { document.getElementById('objectifAutre').value = autre; call.objectifAutre = autre; }
+  // Objection
+  let hasObjection = false;
+  if (lead.objection) {
+    const parts = String(lead.objection).split(' · ').map((x) => x.trim()).filter(Boolean);
+    const detail = parts.find((p) => p.startsWith('«'));
+    const objs = parts.filter((p) => !p.startsWith('«'));
+    preselectMulti('chipsObjections', objs); call.objections = objs;
+    if (detail) {
+      const d = detail.replace(/^«\s?/, '').replace(/\s?»$/, '');
+      document.getElementById('objectionDetail').value = d; call.objectionDetail = d;
+    }
+    hasObjection = objs.length > 0 || !!detail;
+  }
+  // Révèle les étapes déjà renseignées et reflète le statut
+  const isPasInt = lead.statut === '🚫 Pas intéressé';
+  const hasPresentData = manques.length || positifs.length || known.length || !!autre;
+  if (lead.webi === 'Absent') {
+    if (lead.statut === '🔄 À réinscrire' || isPasInt || hasObjection) {
+      reveal('step1', true); reveal('step2non');
+      if (lead.statut === '🔄 À réinscrire') preselectSingle('chipsReinscription', 'reinscrire', 'selected-orange');
+      if (isPasInt) preselectSingle('chipsReinscription', 'non', 'selected-non');
+    }
+  } else if (hasPresentData || isPasInt || lead.statut === '🔄 À rappeler' || hasObjection) {
+    document.getElementById('step0').classList.add('done-step');
+    reveal('step1', true); reveal('step2oui'); reveal('step3'); reveal('step5');
+    if (isPasInt) preselectSingle('chipsStatutAppel', 'pasinteresse', 'selected-non');
+    if (lead.statut === '🔄 À rappeler') preselectSingle('chipsStatutAppel', 'rappeler', 'selected-neutral');
+  }
+  if (hasObjection) reveal('objectionStep');
+}
+
+// Force l'enregistrement des changements en attente du lead courant
+// (évite la perte si on quitte la fiche dans la fenêtre de ~0,7 s du debounce).
+function flushAutosave() {
+  if (!autosaveTimer) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (currentLead) autosaveNow(currentLead.id);
+}
+
 /* ── Ouverture d'un lead ───────────────────────────────────────────────── */
 function openLead(id) {
-  currentLead = leads.find((l) => l.id === id);
-  if (!currentLead) return;
+  flushAutosave(); // sauvegarde le lead précédent avant de changer
+  const next = leads.find((l) => l.id === id);
+  if (!next) return;
+  currentLead = next;
 
   call = newCallState();
   call.nbTentatives = currentLead.nb_tentatives || 0;
@@ -297,6 +386,9 @@ function openLead(id) {
   clearTimeout(autosaveTimer);
   setSaveStatus('');
 
+  // Restitue ce qui a déjà été saisi (cases cochées, raisons, objection, étapes)
+  prefillFromLead(currentLead);
+
   // Timer
   clearInterval(timerInterval);
   timerSeconds = 0;
@@ -312,6 +404,7 @@ function openLead(id) {
 }
 
 function closeLead() {
+  flushAutosave(); // sauvegarde les changements en attente avant de fermer
   clearInterval(timerInterval);
   clearTimeout(autosaveTimer);
   setSaveStatus('');

@@ -174,6 +174,9 @@ function pageToLead(page) {
     note_webi: num(p[F.noteWebi]),
     financement: sel(p[F.financement]) || '',
     notes: rt(p[F.notes]),
+    manques: rt(p[F.manques]),
+    positifs: rt(p[F.positifs]),
+    objection: rt(p[F.objection]),
     gisement,
     a_reserve: check(p[F.aReserve]),
     _edited: page.last_edited_time || '',
@@ -254,12 +257,15 @@ async function bookSetterLead(pageId, dateRdv) {
 async function getStats() {
   const pages = await queryAll();
   const all = pages.map(pageToLead);
+  // Toutes les stats sont calculées sur la population RÉELLEMENT APPELABLE
+  // (téléphone valide) — cohérent avec la file affichée à la setter.
+  const base = all.filter((l) => validPhone(l.telephone));
   // RDV booké RÉEL = uniquement setter (app) ou Calendly (plateforme) → statut booké.
   // Les « Résa call » System.io (a_reserve sans statut booké) ne comptent PAS.
   const estBooke = (l) => l.statut === ST_BOOKE;
   const horsFile = (l) => l.a_reserve || l.statut === ST_BOOKE || l.statut === ST_PAS_INT;
-  const actifs = all.filter((l) => !horsFile(l) && validPhone(l.telephone));
-  const bookes = all.filter(estBooke);
+  const actifs = base.filter((l) => !horsFile(l));
+  const bookes = base.filter(estBooke);
   const todayStr = today();
 
   const serie = [];
@@ -278,15 +284,15 @@ async function getStats() {
     : 0;
 
   return {
-    total_leads: all.length,
+    total_leads: base.length,
     presents_webi: actifs.filter((l) => l.webi === 'Présent').length,
     absents_webi: actifs.filter((l) => l.webi === 'Absent').length,
     rdv_bookes: bookes.length,
     rdv_today: bookes.filter((l) => (l._edited || '').slice(0, 10) === todayStr).length,
-    taux_conversion: all.length ? Math.round((bookes.length / all.length) * 1000) / 10 : 0,
-    injoignables: all.filter((l) => l.statut === '❌ Injoignable').length,
+    taux_conversion: base.length ? Math.round((bookes.length / base.length) * 1000) / 10 : 0,
+    injoignables: base.filter((l) => l.statut === '❌ Injoignable').length,
     score_moyen: scoreMoyen,
-    appels_today: all.filter(
+    appels_today: base.filter(
       (l) => (l._edited || '').slice(0, 10) === todayStr && (l.nb_tentatives > 0 || estBooke(l))
     ).length,
     rdv_7_jours: serie,
