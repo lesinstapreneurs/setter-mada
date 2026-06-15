@@ -197,6 +197,8 @@ async function getSetterLeads() {
   return leads;
 }
 
+// Renvoie { email } (depuis la réponse Notion) pour permettre au routeur de
+// répercuter l'action côté System.io. Renvoie null si rien n'a été modifié.
 async function updateSetterLead(pageId, body) {
   const props = {};
   if ('statut' in body) props[F.statut] = wSel(body.statut);
@@ -209,13 +211,15 @@ async function updateSetterLead(pageId, body) {
   if ('date_rdv' in body) props[F.dateRappel] = wDate(body.date_rdv);
   if ('situation_pro' in body) props[F.situation] = wRt(body.situation_pro);
   if ('objectif' in body) props[F.objectif] = wRt(body.objectif);
-  if (!Object.keys(props).length) return;
-  await notionFetch(`/pages/${pageId}`, 'PATCH', { properties: props });
+  if (!Object.keys(props).length) return null;
+  const page = await notionFetch(`/pages/${pageId}`, 'PATCH', { properties: props });
+  return { email: mail(page.properties?.[F.email]) };
 }
 
 // RDV confirmé par la setter → sort de la file (A réservé un call = ✔)
+// Renvoie { email } pour poser le tag « Résa call » côté System.io.
 async function bookSetterLead(pageId, dateRdv) {
-  await notionFetch(`/pages/${pageId}`, 'PATCH', {
+  const page = await notionFetch(`/pages/${pageId}`, 'PATCH', {
     properties: {
       [F.statut]: wSel(ST_BOOKE),
       [F.aReserve]: wCheck(true),
@@ -223,6 +227,7 @@ async function bookSetterLead(pageId, dateRdv) {
       [F.dateResa]: wDate(dateRdv),
     },
   });
+  return { email: mail(page.properties?.[F.email]) };
 }
 
 async function getStats() {

@@ -435,6 +435,12 @@ function onRepondu(val) {
   }
 }
 
+// Pas de réponse après tentatives → classer injoignable (+ tag System.io)
+function markInjoignable() {
+  setStatut('❌ Injoignable', '🚫 Lead classé injoignable — tag posé dans System.io',
+    { nb_tentatives: call.nbTentatives || (currentLead?.nb_tentatives || 0) });
+}
+
 function copySms() {
   const txt = document.getElementById('speechSms').textContent || '';
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -469,14 +475,14 @@ function onReinscription(val) {
   if (val === 'reinscrire') {
     block.classList.add('show');
     booking.classList.add('hidden');
-    setStatut('🔄 À réinscrire', '🟠 Lead marqué « à réinscrire » — pense au tag dans System.io');
+    setStatut('🔄 À réinscrire', '🟠 Lead « à réinscrire » — tag « Réinscrit webi » posé dans System.io');
   } else if (val === 'call') {
     block.classList.remove('show');
     booking.classList.remove('hidden'); // le booking confirmera le RDV
   } else {
     block.classList.remove('show');
     booking.classList.add('hidden');
-    setStatut('🚫 Pas intéressé', 'Lead classé « pas intéressé »');
+    setStatut('🚫 Pas intéressé', '🚫 Lead « pas intéressé » — tag posé dans System.io');
   }
 }
 
@@ -489,7 +495,7 @@ function onStatutAppel(val) {
   }
   booking.classList.add('hidden');
   if (val === 'pasinteresse') {
-    setStatut('🚫 Pas intéressé', 'Lead classé « pas intéressé »');
+    setStatut('🚫 Pas intéressé', '🚫 Lead « pas intéressé » — tag posé dans System.io');
   } else {
     setStatut('🔄 À rappeler', '🔄 Lead à rappeler');
   }

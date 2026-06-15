@@ -20,6 +20,15 @@ const TAGS_RESA_CALL = [
   { name: 'Résa call', id: 1693176 },
 ];
 
+// ── Tags POSÉS dans System.io par les actions de la setter ────────────────
+// (sens Notion → System.io). IDs récupérés via get_tags du MCP System.io.
+const SIO_TAG = {
+  RESA_CALL: 1693176,      // « Résa call »      — la setter book le RDV
+  PAS_INTERESSE: 2053284,  // « Pas intéressé »  — lead classé pas intéressé
+  INJOIGNABLE: 2053290,    // « Injoignable »    — injoignable après tentatives
+  REINSCRIT: 2053286,      // « Réinscrit webi » — absent à réinscrire lundi
+};
+
 // Tag à poser dans System.io quand un lead absent demande sa réinscription
 const TAG_REINSCRIT_WEBI = 'Réinscrit webi';
 
@@ -46,5 +55,6 @@ module.exports = {
   TAGS_ABSENT_WEBI,
   TAGS_RESA_CALL,
   TAG_REINSCRIT_WEBI,
+  SIO_TAG,
   matchTag,
 };

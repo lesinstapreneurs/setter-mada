@@ -3,8 +3,26 @@
 // ─────────────────────────────────────────────────────────────────────────
 const express = require('express');
 const notion = require('../services/notion');
+const systemeio = require('../services/systemeio');
+const { syncOnce } = require('../services/syncSio');
+const { SIO_TAG } = require('../config');
 
 const router = express.Router();
+
+// Statut setter → tag à poser dans System.io (sens Notion → System.io)
+const STATUT_TO_SIO_TAG = {
+  '🚫 Pas intéressé': SIO_TAG.PAS_INTERESSE,
+  '❌ Injoignable': SIO_TAG.INJOIGNABLE,
+  '🔄 À réinscrire': SIO_TAG.REINSCRIT,
+};
+
+// Pose un tag System.io sans bloquer ni faire échouer la requête (best-effort).
+function tagSioAsync(email, tagId, label) {
+  if (!tagId || !email || !systemeio.isReady()) return;
+  systemeio
+    .assignTag(email, tagId)
+    .catch((e) => console.error(`⚠️ System.io (${label || 'tag'}) : ${e.message}`));
+}
 
 // Si Notion n'est pas configuré → 503, le frontend bascule en mode démo
 router.use((req, res, next) => {
@@ -27,8 +45,12 @@ router.get('/leads', async (req, res) => {
 // PATCH /api/leads/:id — mise à jour d'une fiche pendant / après l'appel
 router.patch('/leads/:id', async (req, res) => {
   try {
-    await notion.updateSetterLead(req.params.id, req.body || {});
+    const body = req.body || {};
+    const out = await notion.updateSetterLead(req.params.id, body);
     res.json({ success: true });
+    // Répercussion System.io si le statut correspond à un tag (best-effort)
+    const tagId = body.statut && STATUT_TO_SIO_TAG[body.statut];
+    if (tagId && out?.email) tagSioAsync(out.email, tagId, body.statut);
   } catch (e) {
     console.error('PATCH /api/leads :', e.message);
     res.status(500).json({ error: e.message });
@@ -40,8 +62,10 @@ router.post('/leads/:id/book', async (req, res) => {
   try {
     const dateRdv = req.body?.date_rdv;
     if (!dateRdv) return res.status(400).json({ error: 'date_rdv manquante' });
-    await notion.bookSetterLead(req.params.id, dateRdv);
+    const out = await notion.bookSetterLead(req.params.id, dateRdv);
     res.json({ success: true });
+    // La setter a booké → tag « Résa call » dans System.io (best-effort)
+    if (out?.email) tagSioAsync(out.email, SIO_TAG.RESA_CALL, 'Résa call');
   } catch (e) {
     console.error('POST /api/leads/book :', e.message);
     res.status(500).json({ error: e.message });
@@ -54,6 +78,36 @@ router.get('/stats', async (req, res) => {
     res.json(await notion.getStats());
   } catch (e) {
     console.error('GET /api/stats :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Synchro System.io → Notion (manuelle) ─────────────────────────────────
+// GET  /api/sync/preview  → aperçu (dry-run, n'écrit RIEN)
+// POST /api/sync/run      → exécute la synchro pour de vrai
+function ensureSioReady(req, res, next) {
+  if (!systemeio.isReady()) {
+    return res.status(503).json({ error: 'System.io non configuré (SYSTEMEIO_MCP_KEY manquant)' });
+  }
+  next();
+}
+
+router.get('/sync/preview', ensureSioReady, async (req, res) => {
+  try {
+    const windowDays = req.query.days ? Number(req.query.days) : undefined;
+    res.json(await syncOnce({ windowDays, dryRun: true }));
+  } catch (e) {
+    console.error('GET /api/sync/preview :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/sync/run', ensureSioReady, async (req, res) => {
+  try {
+    const windowDays = req.body?.days ? Number(req.body.days) : undefined;
+    res.json(await syncOnce({ windowDays, dryRun: false }));
+  } catch (e) {
+    console.error('POST /api/sync/run :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

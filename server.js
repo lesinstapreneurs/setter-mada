@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { ensureSetterDatabase } = require('./services/notion');
+const { startScheduler } = require('./services/syncSio');
 
 const app = express();
 
@@ -21,6 +22,8 @@ const PORT = process.env.PORT || 3000;
     try {
       const id = await ensureSetterDatabase();
       console.log(`📋 Base « Prospects webinaire » connectée : ${id}`);
+      // Synchro entrante System.io → Notion (inactive sauf SYSTEMEIO_SYNC_ENABLED=true)
+      startScheduler();
     } catch (e) {
       console.error('⚠️ Init Notion :', e.message);
       console.error('   → L\'app démarre quand même, le frontend tournera en mode démo.');
