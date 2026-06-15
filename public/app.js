@@ -24,7 +24,7 @@ const SPEECHES = {
     `Personnellement, je trouve qu'avec un appel on est <strong>beaucoup plus efficace</strong>… pas vous ?`,
 
   ressenti: () =>
-    `— Super ! Et globalement, <strong>qu'est-ce que vous en avez pensé</strong> ?`,
+    `— Super ! Et globalement, <strong>qu'est-ce qui vous a le plus plu</strong> ?`,
 
   manques: () =>
     `— Et si vous deviez citer <strong>ce qui vous a manqué</strong>, ce serait quoi ?`,

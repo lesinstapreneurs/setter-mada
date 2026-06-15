@@ -167,15 +167,18 @@
         <div class="step hidden" id="step2oui">
           <div class="step-header">
             <div class="step-num">Étape 2 — Son ressenti sur la conférence</div>
-            <div class="speech"><p id="speechRessenti"></p></div>
 
-            <div class="speech"><p id="speechManques"></p></div>
-            <div class="chips" id="chipsManques"></div>
+            <!-- Q1 : ce qui lui a plu → réponses positives juste en dessous -->
+            <div class="speech"><p id="speechRessenti"></p></div>
+            <div class="q-label">Ce qui lui a plu / convaincu·e <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="chips" id="chipsPositifs"></div>
 
             <div class="step-divider"></div>
 
-            <div class="q-label">Ce qui l'a convaincu·e <span class="hint">(plusieurs choix possibles)</span></div>
-            <div class="chips" id="chipsPositifs"></div>
+            <!-- Q2 : ce qui lui a manqué → réponses « manques » juste en dessous -->
+            <div class="speech"><p id="speechManques"></p></div>
+            <div class="q-label">Ce qui lui a manqué <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="chips" id="chipsManques"></div>
           </div>
         </div>
 
