@@ -169,11 +169,6 @@
             <div class="step-num">Étape 2 — Son ressenti sur la conférence</div>
             <div class="speech"><p id="speechRessenti"></p></div>
 
-            <div class="q-label">Note donnée /10</div>
-            <div class="score-row" id="scoreRow"></div>
-
-            <div class="step-divider"></div>
-
             <div class="speech"><p id="speechManques"></p></div>
             <div class="chips" id="chipsManques"></div>
 
@@ -184,19 +179,15 @@
           </div>
         </div>
 
-        <!-- ÉTAPE 3 — QUALIFICATION -->
+        <!-- ÉTAPE 3 — RAISONS D'INSCRIPTION -->
         <div class="step hidden" id="step3">
           <div class="step-header">
-            <div class="step-num">Étape 3 — Qui sommes-nous &amp; objectif</div>
+            <div class="step-num">Étape 3 — Ses raisons d'inscription</div>
             <div class="speech"><p id="speechProfil"></p></div>
 
-            <div class="q-label">Situation professionnelle</div>
-            <div class="chips" id="chipsSituation"></div>
-
-            <div class="step-divider"></div>
-
-            <div class="q-label">Son objectif sur Instagram <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="q-label">Pour quelles raisons s'est-il·elle inscrit·e ? <span class="hint">(plusieurs choix possibles)</span></div>
             <div class="chips" id="chipsObjectifs"></div>
+            <input type="text" id="objectifAutre" class="text-input" placeholder="Autre raison — à préciser…">
           </div>
         </div>
 
@@ -230,6 +221,17 @@
                 Confirmer le RDV — lead gagné
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- OBJECTIONS (si « pas intéressé ») -->
+        <div class="step hidden" id="objectionStep">
+          <div class="step-header">
+            <div class="step-num">🚫 Pas intéressé·e — comprendre pourquoi</div>
+            <div class="q-label">Objection principale <span class="hint">(plusieurs choix possibles)</span></div>
+            <div class="chips" id="chipsObjections"></div>
+            <div class="q-label">Préciser <span class="hint">(verbatim du prospect)</span></div>
+            <textarea id="objectionDetail" rows="2" placeholder="« C'est trop cher », « je dois voir avec mon associé », « pas le bon moment »…"></textarea>
           </div>
         </div>
 

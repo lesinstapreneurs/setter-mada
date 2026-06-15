@@ -318,6 +318,14 @@ textarea {
 textarea:focus { border-color: var(--lime-dark); background: var(--panel); }
 textarea::placeholder { color: var(--text-faint); }
 
+.text-input {
+  width: 100%; margin-top: 8px; background: var(--panel-soft); border: 1px solid var(--border-strong);
+  border-radius: 9px; padding: 10px 12px; font-size: 13px; color: var(--text);
+  font-family: inherit; outline: none; transition: border-color .15s;
+}
+.text-input:focus { border-color: var(--lime-dark); background: var(--panel); }
+.text-input::placeholder { color: var(--text-faint); }
+
 input[type=text], input[type=date], input[type=time] {
   background: var(--panel); border: 1px solid var(--border-strong); border-radius: 9px;
   padding: 9px 12px; font-size: 13px; color: var(--text); width: 100%;

@@ -47,6 +47,12 @@ function normalize(c) {
   };
 }
 
+// Téléphone exploitable ? (au moins 8 chiffres) — on n'ajoute pas à la file
+// les contacts sans numéro ou au numéro manifestement erroné.
+function hasPhone(c) {
+  return systemeio.field(c, 'phone_number').replace(/\D/g, '').length >= 8;
+}
+
 // Rassemble (dédupliqués par email) les contacts portant l'un des tags listés
 async function collect(tagList, registeredAfter) {
   const map = new Map();
@@ -76,20 +82,27 @@ async function syncOnce({ since, windowDays, dryRun = false } = {}) {
     collect(TAGS_RESA_CALL, registeredAfter),
   ]);
 
-  // Résa call = priorité (sort de la file) ; sinon présent > absent
+  // Résa call = priorité (sort de la file) ; sinon présent > absent.
+  // On n'ajoute à la file que les contacts avec un téléphone exploitable.
+  let skippedNoPhone = 0;
   const actions = [];
   for (const [email] of resa) actions.push({ email, kind: 'resa' });
   for (const [email, c] of present) {
-    if (!resa.has(email)) actions.push({ email, kind: 'present', contact: c });
+    if (resa.has(email)) continue;
+    if (!hasPhone(c)) { skippedNoPhone++; continue; }
+    actions.push({ email, kind: 'present', contact: c });
   }
   for (const [email, c] of absent) {
-    if (!resa.has(email) && !present.has(email)) actions.push({ email, kind: 'absent', contact: c });
+    if (resa.has(email) || present.has(email)) continue;
+    if (!hasPhone(c)) { skippedNoPhone++; continue; }
+    actions.push({ email, kind: 'absent', contact: c });
   }
 
   const summary = {
     since: registeredAfter.slice(0, 10),
     registeredAfter,
     found: { present: present.size, absent: absent.size, resa: resa.size },
+    skippedNoPhone,
     upserts: actions.filter((a) => a.kind !== 'resa').length,
     archives: actions.filter((a) => a.kind === 'resa').length,
     dryRun,

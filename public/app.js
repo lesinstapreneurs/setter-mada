@@ -12,9 +12,10 @@ const SPEECHES = {
   // Étape 1 — ouverture (le prospect a décroché)
   ouverture: (p) =>
     `— Bonjour${p ? ' ' + p : ''}, je suis <strong>Sylvie, des Instapreneurs</strong> ! ` +
-    `Je vous prends juste 3 minutes : on cherche à <strong>améliorer le contenu</strong> qu'on offre ` +
-    `chaque lundi lors de notre <strong>conférence gratuite sur Instagram</strong>. ` +
-    `Vous avez pu y assister, lundi ?`,
+    `Je vous prends juste <strong>3 minutes de votre temps</strong>, s'il vous plaît : ` +
+    `on cherche à <strong>améliorer le contenu</strong> qu'on offre chaque lundi lors de notre ` +
+    `<strong>conférence gratuite sur Instagram</strong>, et j'avais <strong>4 questions</strong> à vous poser. ` +
+    `Premièrement, est-ce que vous avez <strong>pu y assister</strong> ?`,
 
   absent: () =>
     `— Vous avez loupé quelque chose 🙂 Vous voulez que je vous <strong>réinscrive pour la prochaine</strong>, ` +
@@ -23,19 +24,18 @@ const SPEECHES = {
     `Personnellement, je trouve qu'avec un appel on est <strong>beaucoup plus efficace</strong>… pas vous ?`,
 
   ressenti: () =>
-    `— Super ! Et si vous deviez <strong>mettre une note de 1 à 10</strong>, vous lui mettriez combien ?`,
+    `— Super ! Et globalement, <strong>qu'est-ce que vous en avez pensé</strong> ?`,
 
   manques: () =>
     `— Et si vous deviez citer <strong>ce qui vous a manqué</strong>, ce serait quoi ?`,
 
   profil: () =>
-    `— Je vous rappelle vite fait qui on est : <strong>les Instapreneurs</strong>, c'est un ` +
-    `<strong>organisme de formation certifié Qualiopi</strong>, et on a <strong>accompagné plus de 5 000 entrepreneurs</strong> ` +
-    `depuis notre création. À ce sujet, je voulais savoir : <strong>quel est votre objectif sur Instagram</strong> ?`,
+    `— <strong>Vous vous êtes inscrit·e à la conférence pour quelles raisons</strong> ?`,
 
   rdv: () =>
-    `— Ce qu'on propose aujourd'hui, pour les personnes qui ont un projet, un besoin ou simplement l'envie ` +
-    `de se développer, c'est un <strong>appel de 30 minutes avec notre expert, Jordan</strong>. ` +
+    `— Parfait, j'en ai fini avec mon petit questionnaire ! Du coup, je voulais vous proposer ` +
+    `<strong>gratuitement un appel de 30 minutes avec notre expert, Jordan</strong>. ` +
+    `Il est là pour <strong>échanger sur vos problématiques et vos besoins</strong>. ` +
     `C'est <strong>quand vous voulez</strong>, selon votre planning — on regarde une dispo ensemble ? ` +
     `<strong>Ça ne vous engage à rien</strong> : il analyse votre projet ou votre idée, et il vous conseille.`,
 
@@ -84,6 +84,12 @@ const OPTIONS = {
     { label: 'Veut réfléchir — à rappeler', value: 'rappeler', tone: 'neutral' },
     { label: 'Pas intéressé·e', value: 'pasinteresse', tone: 'non' },
   ],
+  // Objections recueillies quand le prospect est « pas intéressé »
+  objections: [
+    'Pas le temps maintenant', 'Question de budget', 'Doit en parler (conjoint / associé)',
+    'Veut juste réfléchir', 'Pas convaincu·e par l\'offre', 'Déjà accompagné·e ailleurs',
+    'Ne se sent pas concerné·e',
+  ],
 };
 
 /* ── Données de démo (si backend non connecté) ─────────────────────────── */
@@ -107,9 +113,10 @@ let autosaveTimer = null;
 let call = newCallState();
 function newCallState() {
   return {
-    repondu: null, vuWebi: null, reinscription: null, noteWebi: null,
-    manques: [], positifs: [], situation: null, objectifs: [],
-    financement: null, issue: null, nbTentatives: 0,
+    repondu: null, vuWebi: null, reinscription: null,
+    manques: [], positifs: [], objectifs: [], objectifAutre: '',
+    issue: null, nbTentatives: 0,
+    objections: [], objectionDetail: '',
   };
 }
 
@@ -147,10 +154,15 @@ function normalizeDemoPatch(p) {
 /* ── Init ──────────────────────────────────────────────────────────────── */
 function init() {
   renderAllChipGroups();
-  renderScoreButtons();
   renderTentatives();
   // Les notes libres s'auto-sauvegardent au fil de la frappe
   document.getElementById('notesLibres').addEventListener('input', scheduleAutosave);
+  // Champ « Autre raison » (étape 3)
+  const autre = document.getElementById('objectifAutre');
+  if (autre) autre.addEventListener('input', (e) => { call.objectifAutre = e.target.value; scheduleAutosave(); });
+  // Détail d'objection (verbatim du prospect)
+  const objDetail = document.getElementById('objectionDetail');
+  if (objDetail) objDetail.addEventListener('input', (e) => { call.objectionDetail = e.target.value; saveObjection(); });
   loadLeads();
 }
 
@@ -311,7 +323,7 @@ function closeLead() {
 }
 
 function resetScriptUI() {
-  ['step1', 'step2non', 'step2oui', 'step3', 'step5'].forEach((id) => {
+  ['step1', 'step2non', 'step2oui', 'step3', 'step5', 'objectionStep'].forEach((id) => {
     const el = document.getElementById(id);
     el.classList.add('hidden');
     el.classList.remove('active-step', 'done-step');
@@ -332,6 +344,10 @@ function resetScriptUI() {
   document.getElementById('rdvTime').value = '';
   document.getElementById('rdvDateAbs').value = '';
   document.getElementById('rdvTimeAbs').value = '';
+  const objDetail = document.getElementById('objectionDetail');
+  if (objDetail) objDetail.value = '';
+  const autre = document.getElementById('objectifAutre');
+  if (autre) autre.value = '';
 }
 
 /* ── Rendu des chips ───────────────────────────────────────────────────── */
@@ -375,26 +391,21 @@ function renderAllChipGroups() {
   renderChipGroup('chipsReinscription', OPTIONS.reinscription, { onSelect: onReinscription });
   renderChipGroup('chipsManques', OPTIONS.manques, { multi: true, onSelect: (v) => { call.manques = v; scheduleAutosave(); } });
   renderChipGroup('chipsPositifs', OPTIONS.positifs, { multi: true, onSelect: (v) => { call.positifs = v; scheduleAutosave(); } });
-  renderChipGroup('chipsSituation', OPTIONS.situations, { onSelect: (v) => { call.situation = v; scheduleAutosave(); } });
   renderChipGroup('chipsObjectifs', OPTIONS.objectifs, { multi: true, onSelect: (v) => { call.objectifs = v; scheduleAutosave(); } });
+  renderChipGroup('chipsObjections', OPTIONS.objections, { multi: true, onSelect: (v) => { call.objections = v; saveObjection(); } });
   renderChipGroup('chipsStatutAppel', OPTIONS.statutsAppel, { onSelect: onStatutAppel });
 }
 
-function renderScoreButtons() {
-  const row = document.getElementById('scoreRow');
-  row.innerHTML = '';
-  for (let i = 1; i <= 10; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'score-btn';
-    btn.textContent = i;
-    btn.onclick = () => {
-      [...row.children].forEach((b) => b.classList.remove('sel-low', 'sel-mid', 'sel-hi'));
-      btn.classList.add(i <= 4 ? 'sel-low' : i <= 7 ? 'sel-mid' : 'sel-hi');
-      call.noteWebi = i;
-      scheduleAutosave();
-    };
-    row.appendChild(btn);
-  }
+// Construit la chaîne d'objection et l'enregistre (champ dédié dans Notion)
+function saveObjection() {
+  if (!currentLead) return;
+  const parts = [...call.objections];
+  if (call.objectionDetail) parts.push('« ' + call.objectionDetail + ' »');
+  const txt = parts.join(' · ');
+  setSaveStatus('saving');
+  patchLead(currentLead.id, { objection: txt })
+    .then(() => setSaveStatus('saved'))
+    .catch(() => setSaveStatus('error'));
 }
 
 // Boutons 1 à 3 pour le nombre de tentatives (étape 0)
@@ -475,14 +486,17 @@ function onReinscription(val) {
   if (val === 'reinscrire') {
     block.classList.add('show');
     booking.classList.add('hidden');
+    showObjections(false);
     setStatut('🔄 À réinscrire', '🟠 Lead « à réinscrire » — tag « Réinscrit webi » posé dans System.io');
   } else if (val === 'call') {
     block.classList.remove('show');
     booking.classList.remove('hidden'); // le booking confirmera le RDV
+    showObjections(false);
   } else {
     block.classList.remove('show');
     booking.classList.add('hidden');
     setStatut('🚫 Pas intéressé', '🚫 Lead « pas intéressé » — tag posé dans System.io');
+    showObjections(true);
   }
 }
 
@@ -491,14 +505,25 @@ function onStatutAppel(val) {
   const booking = document.getElementById('bookingSection');
   if (val === 'interesse') {
     booking.classList.remove('hidden');
+    showObjections(false);
     return;
   }
   booking.classList.add('hidden');
   if (val === 'pasinteresse') {
     setStatut('🚫 Pas intéressé', '🚫 Lead « pas intéressé » — tag posé dans System.io');
+    showObjections(true);
   } else {
     setStatut('🔄 À rappeler', '🔄 Lead à rappeler');
+    showObjections(false);
   }
+}
+
+// Affiche/masque le bloc « objections » (recueil du pourquoi)
+function showObjections(show) {
+  const el = document.getElementById('objectionStep');
+  if (!el) return;
+  el.classList.toggle('hidden', !show);
+  el.classList.toggle('active-step', show);
 }
 
 async function setStatut(statut, toastMsg, extra = {}) {
@@ -560,11 +585,11 @@ function buildPayload() {
     notes: document.getElementById('notesLibres').value,
     nb_tentatives: call.nbTentatives,
   };
-  if (call.noteWebi !== null) payload.note_webi = call.noteWebi;
   if (call.manques.length) payload.manques_webi = call.manques.join(', ');
   if (call.positifs.length) payload.points_positifs = call.positifs.join(', ');
-  if (call.situation) payload.situation_pro = call.situation;
-  if (call.objectifs.length) payload.objectif = call.objectifs.join(', ');
+  const raisons = [...call.objectifs];
+  if (call.objectifAutre) raisons.push(call.objectifAutre);
+  if (raisons.length) payload.objectif = raisons.join(', ');
   return payload;
 }
 

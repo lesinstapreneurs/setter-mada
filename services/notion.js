@@ -38,7 +38,14 @@ const F = {
   dateRappel: 'Date rappel',        // date
   manques: 'Manques webi',          // rich_text
   positifs: 'Points positifs',      // rich_text
+  objection: 'Contenu réponse',     // rich_text : objection « pas intéressé »
 };
+
+// Téléphone exploitable ? (au moins 8 chiffres) — on n'appelle pas les contacts
+// sans numéro ou au numéro manifestement erroné.
+function validPhone(s) {
+  return String(s || '').replace(/\D/g, '').length >= 8;
+}
 
 const ST_BOOKE = '✅ RDV booké';
 const ST_APPELER = '📞 À appeler';
@@ -199,7 +206,10 @@ async function getSetterLeads() {
     },
   });
   const exclus = new Set([ST_BOOKE, ST_PAS_INT]);
-  const leads = pages.map(pageToLead).filter((l) => !exclus.has(l.statut));
+  // On exclut aussi les leads sans téléphone exploitable (inappelables).
+  const leads = pages
+    .map(pageToLead)
+    .filter((l) => !exclus.has(l.statut) && validPhone(l.telephone));
   // Présents d'abord, puis score décroissant
   leads.sort((a, b) =>
     a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1
@@ -217,6 +227,7 @@ async function updateSetterLead(pageId, body) {
   if ('note_webi' in body) props[F.noteWebi] = wNum(body.note_webi);
   if ('manques_webi' in body) props[F.manques] = wRt(body.manques_webi);
   if ('points_positifs' in body) props[F.positifs] = wRt(body.points_positifs);
+  if ('objection' in body) props[F.objection] = wRt(body.objection);
   if ('financement' in body) props[F.financement] = wSel(body.financement);
   if ('date_rdv' in body) props[F.dateRappel] = wDate(body.date_rdv);
   if ('situation_pro' in body) props[F.situation] = wRt(body.situation_pro);
@@ -243,8 +254,11 @@ async function bookSetterLead(pageId, dateRdv) {
 async function getStats() {
   const pages = await queryAll();
   const all = pages.map(pageToLead);
-  const estBooke = (l) => l.a_reserve || l.statut === ST_BOOKE;
-  const actifs = all.filter((l) => !estBooke(l) && l.statut !== ST_PAS_INT);
+  // RDV booké RÉEL = uniquement setter (app) ou Calendly (plateforme) → statut booké.
+  // Les « Résa call » System.io (a_reserve sans statut booké) ne comptent PAS.
+  const estBooke = (l) => l.statut === ST_BOOKE;
+  const horsFile = (l) => l.a_reserve || l.statut === ST_BOOKE || l.statut === ST_PAS_INT;
+  const actifs = all.filter((l) => !horsFile(l) && validPhone(l.telephone));
   const bookes = all.filter(estBooke);
   const todayStr = today();
 
@@ -308,13 +322,15 @@ async function upsertWebiLead(sioContact, kind) {
   }
 }
 
-// Tag « Résa call » : le prospect a réservé seul → on le sort de la file
+// Tag « Résa call » venu de System.io : la résa a pu être déclenchée par un
+// email/automation, PAS par la setter → on sort le lead de la file mais on ne
+// le compte PAS comme RDV booké (statut inchangé). Seuls le booking in-app
+// (bookSetterLead) et le webhook Calendly (markBookedByEmail) comptent.
 async function archiveSetterLead(email) {
   const page = await findPageByEmail(email);
   if (!page) return;
   await notionFetch(`/pages/${page.id}`, 'PATCH', {
     properties: {
-      [F.statut]: wSel(ST_BOOKE),
       [F.aReserve]: wCheck(true),
       [F.gisement]: wSel('🟢 A réservé un call'),
     },
