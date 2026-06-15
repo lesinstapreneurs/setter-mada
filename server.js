@@ -22,12 +22,13 @@ const PORT = process.env.PORT || 3000;
     try {
       const id = await ensureSetterDatabase();
       console.log(`📋 Base « Prospects webinaire » connectée : ${id}`);
-      // Synchro entrante System.io → Notion (inactive sauf SYSTEMEIO_SYNC_ENABLED=true)
-      startScheduler();
     } catch (e) {
       console.error('⚠️ Init Notion :', e.message);
-      console.error('   → L\'app démarre quand même, le frontend tournera en mode démo.');
+      console.error('   → Vérifie que la base est partagée avec l\'intégration. La synchro réessaiera à chaque passe.');
     }
+    // Démarre la synchro même si la vérif initiale a échoué : chaque passe
+    // revérifie l'accès à l'exécution (utile si le partage est corrigé après coup).
+    startScheduler();
   } else {
     console.warn('⚠️ NOTION_TOKEN non défini — frontend en mode démo (copie .env.example vers .env).');
   }

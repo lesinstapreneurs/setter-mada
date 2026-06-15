@@ -52,12 +52,22 @@ function headers() {
   };
 }
 
-async function notionFetch(path, method = 'GET', body) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function notionFetch(path, method = 'GET', body, _retry = 0) {
   const res = await fetch(`${NOTION_API}${path}`, {
     method,
     headers: headers(),
     body: body ? JSON.stringify(body) : undefined,
   });
+  // Rate limit (429) ou surcharge transitoire (502/503) → backoff puis retry.
+  // Protège la synchro de masse ET les appels du frontend pendant la passe.
+  if ((res.status === 429 || res.status === 502 || res.status === 503) && _retry < 5) {
+    const ra = Number(res.headers.get('retry-after'));
+    const waitMs = Number.isFinite(ra) && ra > 0 ? ra * 1000 : 500 * 2 ** _retry;
+    await sleep(waitMs + 100);
+    return notionFetch(path, method, body, _retry + 1);
+  }
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Notion ${method} ${path} → ${res.status} : ${txt}`);

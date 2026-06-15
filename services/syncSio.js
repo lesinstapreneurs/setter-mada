@@ -100,6 +100,7 @@ async function syncOnce({ since, windowDays, dryRun = false } = {}) {
     return summary;
   }
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let okUpserts = 0, okArchives = 0, errors = 0;
   for (const a of actions) {
     try {
@@ -109,6 +110,7 @@ async function syncOnce({ since, windowDays, dryRun = false } = {}) {
       errors++;
       console.error(`⚠️ Sync ${a.kind} ${a.email} : ${e.message}`);
     }
+    await sleep(120); // throttle léger : ménage l'API Notion, garde le frontend réactif
   }
   summary.applied = { upserts: okUpserts, archives: okArchives, errors };
   console.log(
