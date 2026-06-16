@@ -197,15 +197,32 @@ function leadCategory(l) {
   if (l.statut === '🔄 À rappeler' || l.statut === '🔄 À réinscrire') return 'rappeler';
   return 'appeler'; // 📞 À appeler / vide
 }
+// Normalise un téléphone FR : enlève tout sauf chiffres, l'indicatif 33 et le 0
+// de tête → forme canonique de 9 chiffres (ex: 33652379895 / 0652379895 → 652379895)
+function normPhone(s) {
+  let d = String(s || '').replace(/\D/g, '');
+  if (d.startsWith('33')) d = d.slice(2);
+  return d.replace(/^0+/, '');
+}
+// Affichage uniformisé : 06 52 37 98 95 (sinon, renvoie tel quel)
+function formatPhone(s) {
+  const n = normPhone(s);
+  if (n.length === 9) return ('0' + n).replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4 $5');
+  return s || '—';
+}
 function matchSearch(l, q) {
-  return [l.nom, l.prenom, l.telephone, l.email].some((v) => String(v || '').toLowerCase().includes(q));
+  const text = q.toLowerCase();
+  const textMatch = [l.nom, l.prenom, l.email].some((v) => String(v || '').toLowerCase().includes(text));
+  const qDigits = normPhone(q);
+  const phoneMatch = qDigits.length >= 3 && normPhone(l.telephone).includes(qDigits);
+  return textMatch || phoneMatch;
 }
 
 function renderLeads() {
-  const q = searchText.trim().toLowerCase();
-  const visibles = leads
-    .filter((l) => leadCategory(l) === currentFilter)
-    .filter((l) => !q || matchSearch(l, q))
+  const q = searchText.trim();
+  // Recherche = GLOBALE (tous les filtres) ; sans recherche = filtre actif
+  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
+                      : leads.filter((l) => leadCategory(l) === currentFilter))
     .sort((a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1));
 
   document.getElementById('leadsCount').textContent = visibles.length;
@@ -241,7 +258,7 @@ function renderLeads() {
         ${statutBadge}
         ${l.nb_tentatives > 0 ? `<span class="badge badge-tentatives">${l.nb_tentatives} appel${l.nb_tentatives > 1 ? 's' : ''}</span>` : ''}
       </div>
-      <div class="card-phone">${esc(l.telephone || '—')}</div>
+      <div class="card-phone">${esc(formatPhone(l.telephone))}</div>
     </div>`;
   }).join('');
 }
@@ -397,8 +414,9 @@ function openLead(id) {
 
   // Infos
   const tel = document.getElementById('infoTel');
-  tel.textContent = currentLead.telephone || '—';
-  tel.href = currentLead.telephone ? 'tel:' + currentLead.telephone : '#';
+  tel.textContent = formatPhone(currentLead.telephone);
+  const telDigits = normPhone(currentLead.telephone);
+  tel.href = telDigits ? 'tel:0' + telDigits : '#';
   document.getElementById('infoEmail').textContent = currentLead.email || '—';
   document.getElementById('infoNiveau').textContent = currentLead.niveau_ig || '—';
   document.getElementById('infoSituation').textContent = currentLead.situation_pro || '—';
