@@ -634,8 +634,22 @@ async function setStatut(statut, toastMsg, extra = {}) {
 }
 
 /* ── Booking ───────────────────────────────────────────────────────────── */
+// Construit l'URL Calendly avec pré-remplissage (nom, email, téléphone).
+// Calendly : ?name=&email= sont standards ; le téléphone passe par la 1re
+// question personnalisée (a1) du formulaire — à ajuster selon ta config.
+function calendlyUrlFor(lead) {
+  if (!lead) return CALENDLY_URL;
+  const p = new URLSearchParams();
+  const nom = (lead.nom || lead.prenom || '').trim();
+  if (nom) p.set('name', nom);
+  if (lead.email) p.set('email', lead.email);
+  if (lead.telephone) p.set('a1', lead.telephone); // tél = 1re question perso
+  const qs = p.toString();
+  return qs ? CALENDLY_URL + (CALENDLY_URL.includes('?') ? '&' : '?') + qs : CALENDLY_URL;
+}
+
 function openCalendly() {
-  window.open(CALENDLY_URL, '_blank');
+  window.open(calendlyUrlFor(currentLead), '_blank');
 }
 
 async function confirmerRDV(suffix) {
