@@ -640,8 +640,10 @@ async function setStatut(statut, toastMsg, extra = {}) {
 function calendlyUrlFor(lead) {
   if (!lead) return CALENDLY_URL;
   const p = new URLSearchParams();
-  const nom = (lead.nom || lead.prenom || '').trim();
-  if (nom) p.set('name', nom);
+  const prenom = (lead.prenom || lead.nom || '').trim();
+  // name = formulaire à champ unique ; first_name = formulaire prénom/nom séparés.
+  // (on n'a généralement que le prénom côté System.io, pas le nom de famille)
+  if (prenom) { p.set('name', prenom); p.set('first_name', prenom); }
   if (lead.email) p.set('email', lead.email);
   if (lead.telephone) p.set('a1', lead.telephone); // tél = 1re question perso
   const qs = p.toString();

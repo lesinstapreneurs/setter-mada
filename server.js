@@ -8,7 +8,15 @@ const app = express();
 
 // rawBody conservé pour la vérification de signature Calendly
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Fichiers statiques SANS cache navigateur : la setter a toujours la dernière
+// version (HTML/JS/CSS revalidés à chaque chargement) — évite les « je vois
+// encore l'ancienne version ».
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (/\.(html|js|css)$/.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 
 app.use('/webhook', require('./routes/webhooks'));
 app.use('/api', require('./routes/api'));
