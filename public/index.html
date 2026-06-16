@@ -50,6 +50,22 @@
         <div class="stat-lbl">Taux conv.</div>
       </div>
     </div>
+
+    <!-- Recherche -->
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Rechercher un nom, tél, email…">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Effacer">×</button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" data-filter="appeler" onclick="setFilter('appeler')">📞 À appeler</button>
+      <button class="filter-btn" data-filter="rappeler" onclick="setFilter('rappeler')">🔄 À rappeler</button>
+      <button class="filter-btn" data-filter="booke" onclick="setFilter('booke')">✅ Booké</button>
+      <button class="filter-btn" data-filter="perdu" onclick="setFilter('perdu')">🚫 Perdu</button>
+    </div>
+
     <div class="leads-list" id="leadsList">
       <div class="list-placeholder">Chargement de la file…</div>
     </div>
@@ -250,6 +266,7 @@
 
       <div class="save-bar">
         <span class="save-status" id="saveStatus"></span>
+        <button class="btn-reset" onclick="resetFiche()" title="Remettre la fiche à zéro">↺ Réinitialiser</button>
         <button class="btn-save" onclick="saveAll()">💾 Sauvegarder la fiche</button>
       </div>
 

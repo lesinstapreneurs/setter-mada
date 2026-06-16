@@ -103,6 +103,8 @@ const DEMO_LEADS = [
 /* ── État ──────────────────────────────────────────────────────────────── */
 let leads = [];
 let currentLead = null;
+let currentFilter = 'appeler';
+let searchText = '';
 let demoMode = false;
 let rdvBookesDemo = 0;
 let timerInterval = null;
@@ -161,6 +163,8 @@ function normalizeDemoPatch(p) {
 function init() {
   renderAllChipGroups();
   renderTentatives();
+  // Recherche dans la liste des leads
+  document.getElementById('searchInput').addEventListener('input', onSearchInput);
   // Les notes libres s'auto-sauvegardent au fil de la frappe
   document.getElementById('notesLibres').addEventListener('input', scheduleAutosave);
   // Champ « Autre raison » (étape 3)
@@ -185,17 +189,33 @@ async function loadLeads() {
   updateSidebarStats();
 }
 
-/* ── Liste des leads ───────────────────────────────────────────────────── */
+/* ── Liste des leads : recherche + filtres ─────────────────────────────── */
+// Catégorie d'un lead pour les filtres (chaque lead est dans un seul bucket)
+function leadCategory(l) {
+  if (l.statut === '✅ RDV booké' || l.a_reserve) return 'booke';
+  if (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') return 'perdu';
+  if (l.statut === '🔄 À rappeler' || l.statut === '🔄 À réinscrire') return 'rappeler';
+  return 'appeler'; // 📞 À appeler / vide
+}
+function matchSearch(l, q) {
+  return [l.nom, l.prenom, l.telephone, l.email].some((v) => String(v || '').toLowerCase().includes(q));
+}
+
 function renderLeads() {
-  const visibles = [...leads]
-    .filter((l) => l.statut !== '✅ RDV booké')
+  const q = searchText.trim().toLowerCase();
+  const visibles = leads
+    .filter((l) => leadCategory(l) === currentFilter)
+    .filter((l) => !q || matchSearch(l, q))
     .sort((a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1));
 
   document.getElementById('leadsCount').textContent = visibles.length;
   const list = document.getElementById('leadsList');
 
   if (!visibles.length) {
-    list.innerHTML = '<div class="list-placeholder">🎉 File vide — tous les leads ont été traités !</div>';
+    const vide = q ? '🔍 Aucun lead pour cette recherche.'
+      : currentFilter === 'appeler' ? '🎉 Plus personne à appeler dans ce filtre !'
+      : 'Aucun lead dans ce filtre.';
+    list.innerHTML = `<div class="list-placeholder">${vide}</div>`;
     return;
   }
 
@@ -224,6 +244,27 @@ function renderLeads() {
       <div class="card-phone">${esc(l.telephone || '—')}</div>
     </div>`;
   }).join('');
+}
+
+// Change le filtre actif et rafraîchit la liste
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach((b) =>
+    b.classList.toggle('active', b.dataset.filter === f));
+  renderLeads();
+}
+
+function onSearchInput(e) {
+  searchText = e.target.value;
+  document.querySelector('.search-box').classList.toggle('has-text', !!searchText);
+  renderLeads();
+}
+
+function clearSearch() {
+  searchText = '';
+  document.getElementById('searchInput').value = '';
+  document.querySelector('.search-box').classList.remove('has-text');
+  renderLeads();
 }
 
 async function updateSidebarStats() {
@@ -652,6 +693,29 @@ function calendlyUrlFor(lead) {
 
 function openCalendly() {
   window.open(calendlyUrlFor(currentLead), '_blank');
+}
+
+/* ── Réinitialiser une fiche ───────────────────────────────────────────── */
+async function resetFiche() {
+  if (!currentLead) return;
+  const nom = currentLead.nom || 'ce prospect';
+  if (!confirm(`Remettre la fiche de ${nom} à zéro ?\nTout ce qui a été saisi sera effacé.`)) return;
+  const id = currentLead.id;
+  clearTimeout(autosaveTimer); autosaveTimer = null; // annule un autosave en attente
+
+  const vierge = { statut: '📞 À appeler', a_reserve: false, notes: '', manques: '', positifs: '', objectif: '', objection: '', nb_tentatives: 0 };
+  try {
+    if (!demoMode) await api(`/api/leads/${id}/reset`, { method: 'POST' });
+    const l = leads.find((x) => x.id === id);
+    if (l) Object.assign(l, vierge);
+    openLead(id);            // rouvre la fiche vierge (prefill lit les champs vidés)
+    renderLeads();
+    updateSidebarStats();
+    showToast('↺ Fiche réinitialisée');
+  } catch (e) {
+    showToast('⚠️ Erreur lors de la réinitialisation — réessaie');
+    console.error(e);
+  }
 }
 
 async function confirmerRDV(suffix) {

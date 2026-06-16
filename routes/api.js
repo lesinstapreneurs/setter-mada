@@ -72,6 +72,24 @@ router.post('/leads/:id/book', async (req, res) => {
   }
 });
 
+// POST /api/leads/:id/reset — remet la fiche à zéro
+router.post('/leads/:id/reset', async (req, res) => {
+  try {
+    const out = await notion.resetSetterLead(req.params.id);
+    res.json({ success: true });
+    // Retire aussi les tags posés par la setter dans System.io (best-effort)
+    if (out?.email && systemeio.isReady()) {
+      [SIO_TAG.PAS_INTERESSE, SIO_TAG.INJOIGNABLE, SIO_TAG.REINSCRIT, SIO_TAG.RESA_CALL].forEach(
+        (tagId) => systemeio.removeTag(out.email, tagId).catch((e) =>
+          console.error(`⚠️ System.io reset tag ${tagId} : ${e.message}`))
+      );
+    }
+  } catch (e) {
+    console.error('POST /api/leads/reset :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/stats — dashboard
 router.get('/stats', async (req, res) => {
   try {

@@ -119,6 +119,33 @@ body {
   color: var(--text-faint); margin-top: 2px; font-weight: 600;
 }
 
+/* ── Recherche + filtres (sidebar) ─────────────────────────────────────── */
+.search-box {
+  position: relative; display: flex; align-items: center; gap: 7px;
+  margin: 10px 10px 6px; padding: 7px 10px; background: var(--panel-soft);
+  border: 1px solid var(--border-strong); border-radius: 9px; color: var(--text-soft);
+}
+.search-box:focus-within { border-color: var(--lime-dark); }
+.search-box input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-family: inherit; font-size: 13px; color: var(--text);
+}
+.search-box input::placeholder { color: var(--text-faint); }
+.search-clear {
+  display: none; border: none; background: transparent; cursor: pointer;
+  font-size: 17px; line-height: 1; color: var(--text-faint); padding: 0 2px;
+}
+.search-box.has-text .search-clear { display: block; }
+
+.filter-bar { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 10px 8px; }
+.filter-btn {
+  border: 1px solid var(--border-strong); background: var(--panel); border-radius: 999px;
+  padding: 5px 10px; font-size: 11.5px; font-weight: 600; font-family: inherit;
+  color: var(--text-soft); cursor: pointer; transition: all .12s;
+}
+.filter-btn:hover { border-color: var(--text-soft); }
+.filter-btn.active { background: var(--lime-dark); border-color: var(--lime-dark); color: #fff; }
+
 .leads-list { overflow-y: auto; flex: 1; padding: 8px; }
 .list-placeholder { padding: 24px 12px; text-align: center; color: var(--text-faint); font-size: 13px; }
 
@@ -416,6 +443,12 @@ input:focus { border-color: var(--lime-dark); }
   font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .15s;
 }
 .btn-save:hover { background: #3a4030; }
+.btn-reset {
+  background: var(--panel); color: var(--text-soft); border: 1.5px solid var(--border-strong);
+  border-radius: 10px; padding: 12px 14px; font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-reset:hover { border-color: #c0392b; color: #c0392b; }
 
 .save-status {
   align-self: center; font-size: 12.5px; font-weight: 600;

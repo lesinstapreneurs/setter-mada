@@ -193,26 +193,18 @@ async function findPageByEmail(email) {
 }
 
 // ── API frontend ─────────────────────────────────────────────────────────
-// File d'appel : présents/absents pas encore bookés ni traités définitivement
+// Tous les présents/absents avec téléphone exploitable (tous statuts) — le
+// frontend catégorise/filtre (À appeler / À rappeler / Booké / Perdu) et cherche.
 async function getSetterLeads() {
   const pages = await queryAll({
     filter: {
-      and: [
-        { property: F.aReserve, checkbox: { equals: false } },
-        {
-          or: [
-            { property: F.presence, select: { equals: '✅ Présent' } },
-            { property: F.presence, select: { equals: '❌ Absent' } },
-          ],
-        },
+      or: [
+        { property: F.presence, select: { equals: '✅ Présent' } },
+        { property: F.presence, select: { equals: '❌ Absent' } },
       ],
     },
   });
-  const exclus = new Set([ST_BOOKE, ST_PAS_INT]);
-  // On exclut aussi les leads sans téléphone exploitable (inappelables).
-  const leads = pages
-    .map(pageToLead)
-    .filter((l) => !exclus.has(l.statut) && validPhone(l.telephone));
+  const leads = pages.map(pageToLead).filter((l) => validPhone(l.telephone));
   // Présents d'abord, puis score décroissant
   leads.sort((a, b) =>
     a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1
@@ -249,6 +241,26 @@ async function bookSetterLead(pageId, dateRdv) {
       [F.aReserve]: wCheck(true),
       [F.gisement]: wSel('🟢 A réservé un call'),
       [F.dateResa]: wDate(dateRdv),
+    },
+  });
+  return { email: mail(page.properties?.[F.email]) };
+}
+
+// Remet la fiche setter à zéro (repartir de zéro après avoir commencé à
+// remplir) : statut → À appeler, tous les champs setter vidés. Renvoie { email }.
+async function resetSetterLead(pageId) {
+  const page = await notionFetch(`/pages/${pageId}`, 'PATCH', {
+    properties: {
+      [F.statut]: wSel(ST_APPELER),
+      [F.aReserve]: wCheck(false),
+      [F.notes]: wRt(''),
+      [F.manques]: wRt(''),
+      [F.positifs]: wRt(''),
+      [F.objectif]: wRt(''),
+      [F.objection]: wRt(''),
+      [F.nbTent]: wNum(null),
+      [F.dateRappel]: wDate(null),
+      [F.dateResa]: wDate(null),
     },
   });
   return { email: mail(page.properties?.[F.email]) };
@@ -363,6 +375,7 @@ module.exports = {
   getSetterLeads,
   updateSetterLead,
   bookSetterLead,
+  resetSetterLead,
   getStats,
   upsertWebiLead,
   archiveSetterLead,
