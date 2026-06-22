@@ -4,6 +4,7 @@
 const express = require('express');
 const notion = require('../services/notion');
 const systemeio = require('../services/systemeio');
+const onoff = require('../services/onoff');
 const { syncOnce } = require('../services/syncSio');
 const { SIO_TAG } = require('../config');
 
@@ -96,6 +97,18 @@ router.get('/stats', async (req, res) => {
     res.json(await notion.getStats());
   } catch (e) {
     console.error('GET /api/stats :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/onoff-stats — vraies stats d'appels (Onoff). 404 si non configuré.
+router.get('/onoff-stats', async (req, res) => {
+  if (!onoff.isReady()) return res.status(404).json({ error: 'Onoff non configuré (ONOFF_API_KEY manquant)' });
+  try {
+    const days = req.query.days ? Number(req.query.days) : 14;
+    res.json(await onoff.callStats({ days }));
+  } catch (e) {
+    console.error('GET /api/onoff-stats :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

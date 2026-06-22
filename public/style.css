@@ -241,6 +241,23 @@ body {
 }
 .briefing-label { font-weight: 700; flex-shrink: 0; }
 
+/* ── Récap fiche déjà travaillée ──────────────────────────────────────── */
+.fiche-recap {
+  margin: 14px 24px 0; padding: 13px 15px;
+  background: var(--lime-bg); border: 1px solid var(--lime-border); border-radius: 11px;
+}
+.fiche-recap.hidden { display: none; }
+.recap-title { font-size: 12.5px; font-weight: 700; color: var(--lime-deep); margin-bottom: 9px; }
+.recap-notes {
+  background: #fff; border: 1px dashed var(--lime-border); border-radius: 9px;
+  padding: 9px 11px; font-size: 13px; color: #3d5217; line-height: 1.55;
+  white-space: pre-line; margin-bottom: 9px;
+}
+.recap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 7px; }
+.recap-cell { display: flex; flex-direction: column; gap: 1px; }
+.recap-k { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); }
+.recap-v { font-size: 13px; color: var(--text); }
+
 .script-body { padding: 20px 24px 30px; max-width: 860px; }
 
 /* ── Étapes ───────────────────────────────────────────────────────────── */
@@ -492,6 +509,14 @@ input:focus { border-color: var(--lime-dark); }
   padding: 18px; box-shadow: var(--shadow);
 }
 .chart-title { font-size: 13px; font-weight: 700; color: var(--text-soft); margin-bottom: 12px; }
+
+/* ── Section Onoff (stats d'appels réelles) ───────────────────────────── */
+.onoff-section { margin-top: 26px; }
+.onoff-section.hidden { display: none; }
+.onoff-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.onoff-source { color: var(--lime-deep); font-weight: 700; font-size: 13px; }
+.onoff-period { color: var(--text-faint); font-weight: 500; font-size: 13px; }
+.onoff-extra { margin-top: 12px; font-size: 13.5px; color: var(--text-soft); }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }

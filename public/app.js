@@ -378,6 +378,32 @@ function prefillFromLead(lead) {
   if (hasObjection) reveal('objectionStep');
 }
 
+// Récap clair, en haut de la fiche, de tout ce qui a déjà été saisi
+// (pour qu'en rouvrant une fiche on voie l'historique d'un coup d'œil).
+function renderFicheRecap(lead) {
+  const box = document.getElementById('ficheRecap');
+  if (!box) return;
+  const rows = [];
+  if (lead.statut && lead.statut !== '📞 À appeler') rows.push(['Statut', lead.statut]);
+  if (lead.nb_tentatives) rows.push(['Tentatives', lead.nb_tentatives + ' appel' + (lead.nb_tentatives > 1 ? 's' : '')]);
+  if (lead.positifs) rows.push(['Ce qui a plu', lead.positifs]);
+  if (lead.manques) rows.push(['Ce qui a manqué', lead.manques]);
+  if (lead.objectif) rows.push(['Raisons d\'inscription', lead.objectif]);
+  if (lead.objection) rows.push(['Objection', lead.objection]);
+  if (lead.date_rdv) rows.push(['RDV', String(lead.date_rdv).replace('T', ' à ').slice(0, 16)]);
+
+  if (!rows.length && !lead.notes) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+
+  let html = '<div class="recap-title">📋 Déjà saisi pour ce lead</div>';
+  if (lead.notes) html += `<div class="recap-notes">${esc(lead.notes)}</div>`;
+  if (rows.length) {
+    html += '<div class="recap-grid">' + rows.map(([k, v]) =>
+      `<div class="recap-cell"><span class="recap-k">${k}</span><span class="recap-v">${esc(String(v))}</span></div>`).join('') + '</div>';
+  }
+  box.innerHTML = html;
+  box.classList.remove('hidden');
+}
+
 // Force l'enregistrement des changements en attente du lead courant
 // (évite la perte si on quitte la fiche dans la fenêtre de ~0,7 s du debounce).
 function flushAutosave() {
@@ -446,7 +472,8 @@ function openLead(id) {
   clearTimeout(autosaveTimer);
   setSaveStatus('');
 
-  // Restitue ce qui a déjà été saisi (cases cochées, raisons, objection, étapes)
+  // Récap visible + restitution des cases/étapes déjà renseignées
+  renderFicheRecap(currentLead);
   prefillFromLead(currentLead);
 
   // Timer
@@ -881,6 +908,32 @@ async function loadStats() {
     'Actualisé le ' + new Date().toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
   renderChart(s.rdv_7_jours || []);
+  loadOnoffStats();
+}
+
+// Stats d'appels réelles (Onoff). Section masquée si non configuré (404).
+async function loadOnoffStats() {
+  const section = document.getElementById('onoffSection');
+  if (demoMode) { section.classList.add('hidden'); return; }
+  try {
+    const o = await api('/api/onoff-stats');
+    document.getElementById('onoffPeriod').textContent = `· ${o.days} derniers jours`;
+    document.getElementById('onAppels').textContent = o.total;
+    document.getElementById('onDecroche').textContent = o.answerRate + '%';
+    document.getElementById('onConvos').textContent = o.realConvos;
+    document.getElementById('onUniques').textContent = o.uniques;
+    document.getElementById('onDuree').textContent = o.durationMin >= 60
+      ? Math.floor(o.durationMin / 60) + 'h' + String(o.durationMin % 60).padStart(2, '0') : o.durationMin + ' min';
+    document.getElementById('onMoy').textContent = o.avgSec + ' s';
+    const top = (o.topHours || []).length ? `🕐 Meilleurs créneaux : <strong>${o.topHours.join(' · ')}</strong>` : '';
+    const parMembre = o.byMember
+      ? '👥 ' + Object.entries(o.byMember).sort((a, b) => b[1] - a[1]).map(([m, n]) => `${esc(m)} : ${n}`).join(' · ')
+      : '';
+    document.getElementById('onoffExtra').innerHTML = [top, parMembre].filter(Boolean).join('<br>');
+    section.classList.remove('hidden');
+  } catch {
+    section.classList.add('hidden'); // Onoff non branché → on masque la section
+  }
 }
 
 function renderChart(serie) {

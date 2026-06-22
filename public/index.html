@@ -115,6 +115,9 @@
         <span id="infoBriefing">Pas encore de briefing pour ce lead.</span>
       </div>
 
+      <!-- Récap de ce qui a déjà été saisi (fiche déjà travaillée) -->
+      <div class="fiche-recap hidden" id="ficheRecap"></div>
+
       <div class="script-body">
 
         <!-- ÉTAPE 0 — CONTACT -->
@@ -297,6 +300,20 @@
     <div class="chart-card">
       <div class="chart-title">RDV bookés — 7 derniers jours</div>
       <canvas id="chartRdv" height="110"></canvas>
+    </div>
+
+    <!-- ── Activité d'appels réelle (Onoff) ── -->
+    <div class="onoff-section hidden" id="onoffSection">
+      <h3 class="onoff-title">📞 Activité d'appels réelle <span class="onoff-source">· Onoff</span> <span id="onoffPeriod" class="onoff-period"></span></h3>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-big" id="onAppels">—</div><div class="stat-name">Appels passés</div></div>
+        <div class="stat-card"><div class="stat-big green" id="onDecroche">—</div><div class="stat-name">Taux décroché</div></div>
+        <div class="stat-card"><div class="stat-big" id="onConvos">—</div><div class="stat-name">Vraies conversations (&gt;30s)</div></div>
+        <div class="stat-card"><div class="stat-big" id="onUniques">—</div><div class="stat-name">Prospects appelés</div></div>
+        <div class="stat-card"><div class="stat-big" id="onDuree">—</div><div class="stat-name">Temps au téléphone</div></div>
+        <div class="stat-card"><div class="stat-big" id="onMoy">—</div><div class="stat-name">Durée moyenne / appel</div></div>
+      </div>
+      <p class="onoff-extra" id="onoffExtra"></p>
     </div>
   </div>
 </div>
