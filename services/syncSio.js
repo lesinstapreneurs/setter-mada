@@ -54,10 +54,10 @@ function hasPhone(c) {
 }
 
 // Rassemble (dédupliqués par email) les contacts portant l'un des tags listés
-async function collect(tagList, registeredAfter) {
+async function collect(tagList, registeredAfter, registeredBefore) {
   const map = new Map();
   for (const tag of tagList) {
-    const items = await systemeio.listContactsByTag(tag.id, { registeredAfter });
+    const items = await systemeio.listContactsByTag(tag.id, { registeredAfter, registeredBefore });
     for (const c of items) {
       if (c.email) map.set(c.email.toLowerCase(), c);
     }
@@ -70,16 +70,20 @@ async function collect(tagList, registeredAfter) {
  * @param {{windowDays?:number, dryRun?:boolean}} opts
  * @returns {Promise<object>} résumé chiffré (+ échantillon en dryRun)
  */
-async function syncOnce({ since, windowDays, dryRun = false } = {}) {
+async function syncOnce({ since, until, windowDays, dryRun = false } = {}) {
   if (!systemeio.isReady()) throw new Error('System.io non configuré (SYSTEMEIO_MCP_KEY manquant)');
   if (!notion.isReady()) throw new Error('Notion non configuré (NOTION_TOKEN / base manquants)');
 
   const registeredAfter = resolveRegisteredAfter({ since, windowDays });
+  // Borne haute optionnelle (ex: charger UNIQUEMENT une semaine précise)
+  const registeredBefore = until
+    ? (String(until).length <= 10 ? `${until}T23:59:59.999Z` : until)
+    : undefined;
 
   const [present, absent, resa] = await Promise.all([
-    collect(TAGS_PRESENT_WEBI, registeredAfter),
-    collect(TAGS_ABSENT_WEBI, registeredAfter),
-    collect(TAGS_RESA_CALL, registeredAfter),
+    collect(TAGS_PRESENT_WEBI, registeredAfter, registeredBefore),
+    collect(TAGS_ABSENT_WEBI, registeredAfter, registeredBefore),
+    collect(TAGS_RESA_CALL, registeredAfter, registeredBefore),
   ]);
 
   // Résa call = priorité (sort de la file) ; sinon présent > absent.

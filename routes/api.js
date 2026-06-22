@@ -113,7 +113,7 @@ function ensureSioReady(req, res, next) {
 router.get('/sync/preview', ensureSioReady, async (req, res) => {
   try {
     const windowDays = req.query.days ? Number(req.query.days) : undefined;
-    res.json(await syncOnce({ windowDays, dryRun: true }));
+    res.json(await syncOnce({ windowDays, since: req.query.since, until: req.query.until, dryRun: true }));
   } catch (e) {
     console.error('GET /api/sync/preview :', e.message);
     res.status(500).json({ error: e.message });
@@ -123,9 +123,20 @@ router.get('/sync/preview', ensureSioReady, async (req, res) => {
 router.post('/sync/run', ensureSioReady, async (req, res) => {
   try {
     const windowDays = req.body?.days ? Number(req.body.days) : undefined;
-    res.json(await syncOnce({ windowDays, dryRun: false }));
+    res.json(await syncOnce({ windowDays, since: req.body?.since, until: req.body?.until, dryRun: false }));
   } catch (e) {
     console.error('POST /api/sync/run :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/archive — archive tout le lot actif (sort de la file, gardé en archive)
+router.post('/archive', async (req, res) => {
+  try {
+    const n = await notion.archiveActiveCohort();
+    res.json({ success: true, archived: n });
+  } catch (e) {
+    console.error('POST /api/archive :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

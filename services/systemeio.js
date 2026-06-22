@@ -164,12 +164,13 @@ async function removeTag(email, tagId) {
 
 // Liste paginée des contacts portant un tag donné (pour la synchro entrante).
 // registeredAfter (ISO date) permet de ne tirer que les inscrits récents.
-async function listContactsByTag(tagId, { registeredAfter, limit = 100 } = {}) {
+async function listContactsByTag(tagId, { registeredAfter, registeredBefore, limit = 100 } = {}) {
   const out = [];
   let startingAfter;
   do {
     const data = { tags: String(tagId), limit: Math.min(Math.max(limit, 10), 100) };
     if (registeredAfter) data.registeredAfter = registeredAfter;
+    if (registeredBefore) data.registeredBefore = registeredBefore;
     if (startingAfter) data.startingAfter = startingAfter;
     const page = await callTool('get_contacts', { data });
     const items = page?.items || [];

@@ -192,6 +192,7 @@ async function loadLeads() {
 /* ── Liste des leads : recherche + filtres ─────────────────────────────── */
 // Catégorie d'un lead pour les filtres (chaque lead est dans un seul bucket)
 function leadCategory(l) {
+  if (l.archived) return 'archive'; // lot archivé → onglet Archivés
   if (l.statut === '✅ RDV booké' || l.a_reserve) return 'booke';
   if (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') return 'perdu';
   if (l.statut === '🔄 À rappeler' || l.statut === '🔄 À réinscrire') return 'rappeler';

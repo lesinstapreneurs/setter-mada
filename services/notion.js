@@ -39,6 +39,7 @@ const F = {
   manques: 'Manques webi',          // rich_text
   positifs: 'Points positifs',      // rich_text
   objection: 'Contenu réponse',     // rich_text : objection « pas intéressé »
+  archive: 'Archivé setter',        // checkbox : sorti de la file active, gardé en archive
 };
 
 // Téléphone exploitable ? (au moins 8 chiffres) — on n'appelle pas les contacts
@@ -177,6 +178,7 @@ function pageToLead(page) {
     manques: rt(p[F.manques]),
     positifs: rt(p[F.positifs]),
     objection: rt(p[F.objection]),
+    archived: check(p[F.archive]),
     gisement,
     a_reserve: check(p[F.aReserve]),
     _edited: page.last_edited_time || '',
@@ -269,9 +271,9 @@ async function resetSetterLead(pageId) {
 async function getStats() {
   const pages = await queryAll();
   const all = pages.map(pageToLead);
-  // Toutes les stats sont calculées sur la population RÉELLEMENT APPELABLE
-  // (téléphone valide) — cohérent avec la file affichée à la setter.
-  const base = all.filter((l) => validPhone(l.telephone));
+  // Stats sur la population RÉELLEMENT APPELABLE (téléphone valide) et NON
+  // archivée — cohérent avec la file active affichée à la setter.
+  const base = all.filter((l) => validPhone(l.telephone) && !l.archived);
   // RDV booké RÉEL = uniquement setter (app) ou Calendly (plateforme) → statut booké.
   // Les « Résa call » System.io (a_reserve sans statut booké) ne comptent PAS.
   const estBooke = (l) => l.statut === ST_BOOKE;
@@ -335,9 +337,38 @@ async function upsertWebiLead(sioContact, kind) {
         [F.presence]: wSel(presence),
         [F.statut]: wSel(ST_APPELER),
         [F.dateInscr]: wDate(today()),
+        [F.archive]: wCheck(false), // nouveau lead → file active
       },
     });
   }
+}
+
+// Archive tout le lot ACTUELLEMENT actif (présents/absents non archivés) :
+// coche « Archivé setter » → sort de la file mais reste consultable (onglet
+// Archivés) avec tout l'historique. Renvoie le nombre de fiches archivées.
+async function archiveActiveCohort() {
+  const pages = await queryAll({
+    filter: {
+      and: [
+        { property: F.archive, checkbox: { equals: false } },
+        {
+          or: [
+            { property: F.presence, select: { equals: '✅ Présent' } },
+            { property: F.presence, select: { equals: '❌ Absent' } },
+          ],
+        },
+      ],
+    },
+  });
+  let n = 0;
+  for (const page of pages) {
+    await notionFetch(`/pages/${page.id}`, 'PATCH', {
+      properties: { [F.archive]: wCheck(true) },
+    });
+    n++;
+  }
+  console.log(`🗄️  Archivage : ${n} fiches archivées.`);
+  return n;
 }
 
 // Tag « Résa call » venu de System.io : la résa a pu être déclenchée par un
@@ -376,6 +407,7 @@ module.exports = {
   updateSetterLead,
   bookSetterLead,
   resetSetterLead,
+  archiveActiveCohort,
   getStats,
   upsertWebiLead,
   archiveSetterLead,
