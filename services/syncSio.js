@@ -70,7 +70,7 @@ async function collect(tagList, registeredAfter, registeredBefore) {
  * @param {{windowDays?:number, dryRun?:boolean}} opts
  * @returns {Promise<object>} résumé chiffré (+ échantillon en dryRun)
  */
-async function syncOnce({ since, until, windowDays, dryRun = false } = {}) {
+async function syncOnce({ since, until, windowDays, dryRun = false, reactivate = false } = {}) {
   if (!systemeio.isReady()) throw new Error('System.io non configuré (SYSTEMEIO_MCP_KEY manquant)');
   if (!notion.isReady()) throw new Error('Notion non configuré (NOTION_TOKEN / base manquants)');
 
@@ -122,7 +122,7 @@ async function syncOnce({ since, until, windowDays, dryRun = false } = {}) {
   for (const a of actions) {
     try {
       if (a.kind === 'resa') { await notion.archiveSetterLead(a.email); okArchives++; }
-      else { await notion.upsertWebiLead(normalize(a.contact), a.kind); okUpserts++; }
+      else { await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate); okUpserts++; }
     } catch (e) {
       errors++;
       console.error(`⚠️ Sync ${a.kind} ${a.email} : ${e.message}`);

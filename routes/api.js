@@ -136,7 +136,7 @@ router.get('/sync/preview', ensureSioReady, async (req, res) => {
 router.post('/sync/run', ensureSioReady, async (req, res) => {
   try {
     const windowDays = req.body?.days ? Number(req.body.days) : undefined;
-    res.json(await syncOnce({ windowDays, since: req.body?.since, until: req.body?.until, dryRun: false }));
+    res.json(await syncOnce({ windowDays, since: req.body?.since, until: req.body?.until, reactivate: !!req.body?.reactivate, dryRun: false }));
   } catch (e) {
     console.error('POST /api/sync/run :', e.message);
     res.status(500).json({ error: e.message });

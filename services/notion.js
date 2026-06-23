@@ -315,7 +315,7 @@ async function getStats() {
 
 // ── Webhooks (filets de sécurité — Make alimente déjà la base) ───────────
 // Tag présent/absent reçu : on s'assure que la fiche existe et reste à appeler
-async function upsertWebiLead(sioContact, kind) {
+async function upsertWebiLead(sioContact, kind, reactivate = false) {
   const email = String(sioContact.email || '').trim();
   if (!email) return;
   const presence = kind === 'present' ? '✅ Présent' : '❌ Absent';
@@ -323,9 +323,9 @@ async function upsertWebiLead(sioContact, kind) {
   if (existing) {
     if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return; // garde le RDV booké
     const props = { [F.presence]: wSel(presence) };
-    // Ré-participant à un nouveau webi : s'il était archivé, il revient dans la
-    // file active en fiche fraîche (« À appeler ») — ses notes/historique restent.
-    if (check(existing.properties?.[F.archive])) {
+    // Désarchivage UNIQUEMENT si reactivate=true (chargement explicite d'un
+    // nouveau lot) — jamais dans la synchro auto, sinon elle ressortirait tout.
+    if (reactivate && check(existing.properties?.[F.archive])) {
       props[F.archive] = wCheck(false);
       props[F.statut] = wSel(ST_APPELER);
       props[F.aReserve] = wCheck(false);
