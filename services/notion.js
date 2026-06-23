@@ -321,10 +321,16 @@ async function upsertWebiLead(sioContact, kind) {
   const presence = kind === 'present' ? '✅ Présent' : '❌ Absent';
   const existing = await findPageByEmail(email);
   if (existing) {
-    if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return;
-    await notionFetch(`/pages/${existing.id}`, 'PATCH', {
-      properties: { [F.presence]: wSel(presence) },
-    });
+    if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return; // garde le RDV booké
+    const props = { [F.presence]: wSel(presence) };
+    // Ré-participant à un nouveau webi : s'il était archivé, il revient dans la
+    // file active en fiche fraîche (« À appeler ») — ses notes/historique restent.
+    if (check(existing.properties?.[F.archive])) {
+      props[F.archive] = wCheck(false);
+      props[F.statut] = wSel(ST_APPELER);
+      props[F.aReserve] = wCheck(false);
+    }
+    await notionFetch(`/pages/${existing.id}`, 'PATCH', { properties: props });
   } else {
     const nom = [sioContact.first_name, sioContact.last_name].filter(Boolean).join(' ').trim() || email;
     await notionFetch('/pages', 'POST', {
@@ -351,6 +357,8 @@ async function archiveActiveCohort() {
     filter: {
       and: [
         { property: F.archive, checkbox: { equals: false } },
+        // On NE touche PAS aux RDV bookés (RDV à venir → restent dans Booké)
+        { property: F.statut, select: { does_not_equal: ST_BOOKE } },
         {
           or: [
             { property: F.presence, select: { equals: '✅ Présent' } },
