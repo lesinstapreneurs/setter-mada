@@ -928,14 +928,12 @@ async function loadOnoffStats(days = 7) {
     document.getElementById('onDecroche').textContent = o.answerRate + '%';
     document.getElementById('onConvos').textContent = o.realConvos;
     document.getElementById('onUniques').textContent = o.uniques;
+    document.getElementById('onSms').textContent = o.smsSent;
     document.getElementById('onDuree').textContent = o.durationMin >= 60
       ? Math.floor(o.durationMin / 60) + 'h' + String(o.durationMin % 60).padStart(2, '0') : o.durationMin + ' min';
     document.getElementById('onMoy').textContent = o.avgSec + ' s';
     const top = (o.topHours || []).length ? `🕐 Meilleurs créneaux : <strong>${o.topHours.join(' · ')}</strong>` : '';
-    const parMembre = o.byMember
-      ? '👥 ' + Object.entries(o.byMember).sort((a, b) => b[1] - a[1]).map(([m, n]) => `${esc(m)} : ${n}`).join(' · ')
-      : '';
-    document.getElementById('onoffExtra').innerHTML = [top, parMembre].filter(Boolean).join('<br>');
+    document.getElementById('onoffExtra').innerHTML = top;
     section.classList.remove('hidden');
   } catch {
     section.classList.add('hidden'); // Onoff non branché → on masque la section

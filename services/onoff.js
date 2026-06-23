@@ -45,39 +45,65 @@ async function callsForMember(memberId, startISO, endISO) {
   return out;
 }
 
+// SMS / messages d'un membre sur une période (même pagination que les appels)
+async function messagesForMember(memberId, startISO, endISO) {
+  const out = [];
+  let offset = '';
+  do {
+    const qs = `startDate=${startISO}&endDate=${endISO}&memberIdRef=${memberId}` +
+      (offset ? `&offset=${encodeURIComponent(offset)}` : '');
+    const j = await api(`/api/v1/messages?${qs}`);
+    out.push(...(j.messagesLogs || []));
+    offset = j.nextOffset || '';
+    if (offset) await sleep(250);
+  } while (offset && out.length < 8000);
+  return out;
+}
+
 // Affichage : la setter s'appelle « Sylvie » dans le script (compte Onoff = Marine).
 const NAME_MAP = { 'Marine Queteaud': 'Sylvie', Marine: 'Sylvie' };
 const displayName = (n) => NAME_MAP[n] || n;
 
-// Cache des appels bruts (5 min) : on tire 31 j une seule fois, puis on calcule
-// jour / semaine / mois depuis ce cache sans re-paginer l'API à chaque période.
+// On ne garde QUE l'activité de la setter (Marine/Sylvie), pas l'expert (Jordan).
+const SETTER = (process.env.ONOFF_SETTER_NAME || 'Marine').toLowerCase();
+async function setterMembers() {
+  const all = await membersWithNumber();
+  const m = all.filter((x) => `${x.firstName} ${x.lastName}`.toLowerCase().includes(SETTER));
+  return m.length ? m : all; // fallback si aucun match
+}
+
+// Cache (5 min) : on tire 31 j (appels + SMS) de la setter une seule fois, puis
+// on calcule jour / semaine / mois depuis ce cache sans re-paginer l'API.
 let rawCache = null;
 const RAW_TTL = 5 * 60 * 1000;
 
-async function getRawCalls() {
-  if (rawCache && Date.now() - rawCache.t < RAW_TTL) return rawCache.calls;
+async function getRaw() {
+  if (rawCache && Date.now() - rawCache.t < RAW_TTL) return rawCache.data;
   const now = new Date();
   const startISO = new Date(now.getTime() - 31 * 86_400_000).toISOString().slice(0, 19) + 'Z';
   const endISO = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 19) + 'Z';
-  const members = await membersWithNumber();
-  const all = [];
+  const members = await setterMembers();
+  const calls = [], messages = [];
   for (const m of members) {
-    const calls = await callsForMember(m.id, startISO, endISO);
-    for (const c of calls) all.push({ ...c, member: displayName(`${m.firstName} ${m.lastName}`.trim()) });
+    const name = displayName(`${m.firstName} ${m.lastName}`.trim());
+    for (const c of await callsForMember(m.id, startISO, endISO)) calls.push({ ...c, member: name });
+    for (const s of await messagesForMember(m.id, startISO, endISO)) messages.push(s);
   }
-  rawCache = { t: Date.now(), calls: all };
-  return all;
+  const data = { calls, messages };
+  rawCache = { t: Date.now(), data };
+  return data;
 }
 
 // Stats sur une fenêtre : days=1 → aujourd'hui, 7 → semaine, 30 → mois.
 async function callStats({ days = 7 } = {}) {
-  const raw = await getRawCalls();
+  const { calls: rawCalls, messages: rawMsg } = await getRaw();
   const now = new Date();
   const startDay = Number(days) <= 1
     ? now.toISOString().slice(0, 10)
     : new Date(now.getTime() - Number(days) * 86_400_000).toISOString().slice(0, 10);
 
-  const calls = raw.filter((c) => (c.startedDate || '').slice(0, 10) >= startDay);
+  const calls = rawCalls.filter((c) => (c.startedDate || '').slice(0, 10) >= startDay);
+  const smsSent = rawMsg.filter((m) => m.smsSent && (m.date || '').slice(0, 10) >= startDay).length;
   const answered = calls.filter((c) => c.status === 'ANSWER');
   const totalDur = answered.reduce((s, c) => s + (c.duration || 0), 0);
   const real = answered.filter((c) => (c.duration || 0) >= 30);
@@ -97,6 +123,7 @@ async function callStats({ days = 7 } = {}) {
     realConvos: real.length,
     durationMin: Math.round(totalDur / 60),
     avgSec: answered.length ? Math.round(totalDur / answered.length) : 0,
+    smsSent,
     topHours,
     byMember,
     byHour,
