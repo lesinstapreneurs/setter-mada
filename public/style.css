@@ -513,7 +513,14 @@ input:focus { border-color: var(--lime-dark); }
 /* ── Section Onoff (stats d'appels réelles) ───────────────────────────── */
 .onoff-section { margin-top: 26px; }
 .onoff-section.hidden { display: none; }
-.onoff-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.onoff-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.onoff-title { font-size: 16px; font-weight: 800; }
+.onoff-periods { display: flex; gap: 5px; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+.onoff-period-btn {
+  border: none; background: transparent; border-radius: 999px; padding: 5px 14px;
+  font-size: 12.5px; font-weight: 600; font-family: inherit; color: var(--text-soft); cursor: pointer; transition: all .12s;
+}
+.onoff-period-btn.active { background: var(--lime-dark); color: #fff; }
 .onoff-source { color: var(--lime-deep); font-weight: 700; font-size: 13px; }
 .onoff-period { color: var(--text-faint); font-weight: 500; font-size: 13px; }
 .onoff-extra { margin-top: 12px; font-size: 13.5px; color: var(--text-soft); }

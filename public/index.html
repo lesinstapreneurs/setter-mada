@@ -304,7 +304,14 @@
 
     <!-- ── Activité d'appels réelle (Onoff) ── -->
     <div class="onoff-section hidden" id="onoffSection">
-      <h3 class="onoff-title">📞 Activité d'appels réelle <span class="onoff-source">· Onoff</span> <span id="onoffPeriod" class="onoff-period"></span></h3>
+      <div class="onoff-head">
+        <h3 class="onoff-title">📞 Activité d'appels réelle <span class="onoff-source">· Onoff</span></h3>
+        <div class="onoff-periods" id="onoffPeriods">
+          <button class="onoff-period-btn" data-days="1" onclick="setOnoffPeriod(1)">Jour</button>
+          <button class="onoff-period-btn active" data-days="7" onclick="setOnoffPeriod(7)">Semaine</button>
+          <button class="onoff-period-btn" data-days="30" onclick="setOnoffPeriod(30)">Mois</button>
+        </div>
+      </div>
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-big" id="onAppels">—</div><div class="stat-name">Appels passés</div></div>
         <div class="stat-card"><div class="stat-big green" id="onDecroche">—</div><div class="stat-name">Taux décroché</div></div>

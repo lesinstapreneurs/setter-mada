@@ -911,13 +911,19 @@ async function loadStats() {
   loadOnoffStats();
 }
 
+// Bascule la période (1=jour, 7=semaine, 30=mois) des stats Onoff
+function setOnoffPeriod(days) {
+  document.querySelectorAll('.onoff-period-btn').forEach((b) =>
+    b.classList.toggle('active', Number(b.dataset.days) === days));
+  loadOnoffStats(days);
+}
+
 // Stats d'appels réelles (Onoff). Section masquée si non configuré (404).
-async function loadOnoffStats() {
+async function loadOnoffStats(days = 7) {
   const section = document.getElementById('onoffSection');
   if (demoMode) { section.classList.add('hidden'); return; }
   try {
-    const o = await api('/api/onoff-stats');
-    document.getElementById('onoffPeriod').textContent = `· ${o.days} derniers jours`;
+    const o = await api('/api/onoff-stats?days=' + days);
     document.getElementById('onAppels').textContent = o.total;
     document.getElementById('onDecroche').textContent = o.answerRate + '%';
     document.getElementById('onConvos').textContent = o.realConvos;

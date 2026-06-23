@@ -45,33 +45,39 @@ async function callsForMember(memberId, startISO, endISO) {
   return out;
 }
 
-// Cache mémoire (5 min) — évite de re-paginer l'API à chaque ouverture des stats
-const cache = new Map();
-const TTL = 5 * 60 * 1000;
+// Affichage : la setter s'appelle « Sylvie » dans le script (compte Onoff = Marine).
+const NAME_MAP = { 'Marine Queteaud': 'Sylvie', Marine: 'Sylvie' };
+const displayName = (n) => NAME_MAP[n] || n;
 
-async function callStats({ days = 14 } = {}) {
-  const hit = cache.get(days);
-  if (hit && Date.now() - hit.t < TTL) return hit.data;
-  const data = await computeCallStats({ days });
-  cache.set(days, { t: Date.now(), data });
-  return data;
-}
+// Cache des appels bruts (5 min) : on tire 31 j une seule fois, puis on calcule
+// jour / semaine / mois depuis ce cache sans re-paginer l'API à chaque période.
+let rawCache = null;
+const RAW_TTL = 5 * 60 * 1000;
 
-async function computeCallStats({ days = 14 } = {}) {
+async function getRawCalls() {
+  if (rawCache && Date.now() - rawCache.t < RAW_TTL) return rawCache.calls;
   const now = new Date();
-  const start = new Date(now.getTime() - Number(days) * 86_400_000);
-  const startISO = start.toISOString().slice(0, 19) + 'Z';
+  const startISO = new Date(now.getTime() - 31 * 86_400_000).toISOString().slice(0, 19) + 'Z';
   const endISO = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 19) + 'Z';
-  const startDay = start.toISOString().slice(0, 10);
-
   const members = await membersWithNumber();
   const all = [];
   for (const m of members) {
     const calls = await callsForMember(m.id, startISO, endISO);
-    for (const c of calls) all.push({ ...c, member: `${m.firstName} ${m.lastName}`.trim() });
+    for (const c of calls) all.push({ ...c, member: displayName(`${m.firstName} ${m.lastName}`.trim()) });
   }
-  // L'API filtre mal la borne haute → on refiltre côté serveur
-  const calls = all.filter((c) => (c.startedDate || '').slice(0, 10) >= startDay);
+  rawCache = { t: Date.now(), calls: all };
+  return all;
+}
+
+// Stats sur une fenêtre : days=1 → aujourd'hui, 7 → semaine, 30 → mois.
+async function callStats({ days = 7 } = {}) {
+  const raw = await getRawCalls();
+  const now = new Date();
+  const startDay = Number(days) <= 1
+    ? now.toISOString().slice(0, 10)
+    : new Date(now.getTime() - Number(days) * 86_400_000).toISOString().slice(0, 10);
+
+  const calls = raw.filter((c) => (c.startedDate || '').slice(0, 10) >= startDay);
   const answered = calls.filter((c) => c.status === 'ANSWER');
   const totalDur = answered.reduce((s, c) => s + (c.duration || 0), 0);
   const real = answered.filter((c) => (c.duration || 0) >= 30);
