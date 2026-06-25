@@ -7,6 +7,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { matchTag } = require('../config');
 const notion = require('../services/notion');
+const nocrm = require('../services/nocrm');
 
 const router = express.Router();
 
@@ -92,7 +93,9 @@ async function processCalendly(body) {
 
   if (!email) return console.warn('⚠️ Webhook Calendly sans email invitee — ignoré');
   console.log(`📅 Webhook Calendly : ${email} → RDV ${dateRdv || 'sans date'}`);
-  await notion.markBookedByEmail(email.trim(), dateRdv || null);
+  const lead = await notion.markBookedByEmail(email.trim(), dateRdv || null);
+  // Création du lead noCRM avec le récap + notes (best-effort)
+  if (lead) nocrm.pushBooking(lead, dateRdv || null).catch((e) => console.error('⚠️ noCRM (calendly) :', e.message));
 }
 
 module.exports = router;

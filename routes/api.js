@@ -5,6 +5,7 @@ const express = require('express');
 const notion = require('../services/notion');
 const systemeio = require('../services/systemeio');
 const onoff = require('../services/onoff');
+const nocrm = require('../services/nocrm');
 const { syncOnce } = require('../services/syncSio');
 const { SIO_TAG } = require('../config');
 
@@ -67,6 +68,8 @@ router.post('/leads/:id/book', async (req, res) => {
     res.json({ success: true });
     // La setter a booké → tag « Résa call » dans System.io (best-effort)
     if (out?.email) tagSioAsync(out.email, SIO_TAG.RESA_CALL, 'Résa call');
+    // … et création du lead dans noCRM avec le récap + notes (best-effort)
+    if (out) nocrm.pushBooking(out, dateRdv).catch((e) => console.error('⚠️ noCRM (book) :', e.message));
   } catch (e) {
     console.error('POST /api/leads/book :', e.message);
     res.status(500).json({ error: e.message });

@@ -235,7 +235,7 @@ async function updateSetterLead(pageId, body) {
 }
 
 // RDV confirmé par la setter → sort de la file (A réservé un call = ✔)
-// Renvoie { email } pour poser le tag « Résa call » côté System.io.
+// Renvoie la fiche complète (email pour le tag System.io + récap pour noCRM).
 async function bookSetterLead(pageId, dateRdv) {
   const page = await notionFetch(`/pages/${pageId}`, 'PATCH', {
     properties: {
@@ -245,7 +245,7 @@ async function bookSetterLead(pageId, dateRdv) {
       [F.dateResa]: wDate(dateRdv),
     },
   });
-  return { email: mail(page.properties?.[F.email]) };
+  return pageToLead(page);
 }
 
 // Remet la fiche setter à zéro (repartir de zéro après avoir commencé à
@@ -394,11 +394,11 @@ async function archiveSetterLead(email) {
   });
 }
 
-// Webhook Calendly : RDV pris → marquer booké
+// Webhook Calendly : RDV pris → marquer booké. Renvoie la fiche (pour noCRM).
 async function markBookedByEmail(email, dateRdv) {
   const page = await findPageByEmail(email);
-  if (!page) return console.warn(`⚠️ Calendly : aucune fiche pour ${email}`);
-  await notionFetch(`/pages/${page.id}`, 'PATCH', {
+  if (!page) { console.warn(`⚠️ Calendly : aucune fiche pour ${email}`); return null; }
+  const updated = await notionFetch(`/pages/${page.id}`, 'PATCH', {
     properties: {
       [F.statut]: wSel(ST_BOOKE),
       [F.aReserve]: wCheck(true),
@@ -406,6 +406,7 @@ async function markBookedByEmail(email, dateRdv) {
       [F.dateResa]: wDate(dateRdv),
     },
   });
+  return pageToLead(updated);
 }
 
 module.exports = {
