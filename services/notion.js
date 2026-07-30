@@ -141,6 +141,9 @@ function pageToLead(page) {
   const prenom = rt(p[F.prenom]) || t(p[F.nom]);
   const presence = sel(p[F.presence]);
   const webi = presence.includes('Présent') ? 'Présent' : presence.includes('Absent') ? 'Absent' : 'Présent';
+  // Webinaire d'origine : 'ia' si le marqueur « Tag SIO » contient « IA »,
+  // sinon 'social' (réseaux sociaux du lundi — défaut rétro-compatible).
+  const typeWebi = rt(p[F.tagSio]).includes('IA') ? 'ia' : 'social';
   const dateInscr = date(p[F.dateInscr]) || (page.created_time || '').slice(0, 10);
   const gisement = sel(p[F.gisement]);
   const niveau = sel(p[F.niveau]);
@@ -163,6 +166,7 @@ function pageToLead(page) {
     email: mail(p[F.email]),
     statut: sel(p[F.statut]) || ST_APPELER,
     webi,
+    type_webi: typeWebi,
     score: scoreChaleur(dateInscr),
     niveau_ig: niveau,
     situation_pro: situation,
@@ -231,7 +235,10 @@ async function updateSetterLead(pageId, body) {
   if ('objectif' in body) props[F.objectif] = wRt(body.objectif);
   if (!Object.keys(props).length) return null;
   const page = await notionFetch(`/pages/${pageId}`, 'PATCH', { properties: props });
-  return { email: mail(page.properties?.[F.email]) };
+  return {
+    email: mail(page.properties?.[F.email]),
+    type_webi: rt(page.properties?.[F.tagSio]).includes('IA') ? 'ia' : 'social',
+  };
 }
 
 // RDV confirmé par la setter → sort de la file (A réservé un call = ✔)
@@ -315,7 +322,15 @@ async function getStats() {
 
 // ── Webhooks (filets de sécurité — Make alimente déjà la base) ───────────
 // Tag présent/absent reçu : on s'assure que la fiche existe et reste à appeler
-async function upsertWebiLead(sioContact, kind, reactivate = false) {
+// Marqueur de webinaire d'origine stocké dans le champ « Tag SIO » (rich_text).
+// On y met un libellé lisible → sert à afficher la bonne couleur / le bon speech
+// et à router la réinscription (IA ≠ lundi). 'social' par défaut (rétro-compat :
+// tous les leads existants viennent du lundi).
+function webiMark(webiType) {
+  return webiType === 'ia' ? '🤖 IA' : '📱 Réseaux sociaux';
+}
+
+async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = null) {
   const email = String(sioContact.email || '').trim();
   if (!email) return;
   const presence = kind === 'present' ? '✅ Présent' : '❌ Absent';
@@ -323,6 +338,9 @@ async function upsertWebiLead(sioContact, kind, reactivate = false) {
   if (existing) {
     if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return; // garde le RDV booké
     const props = { [F.presence]: wSel(presence) };
+    // Renseigne le webinaire d'origine s'il n'est pas encore posé (ne réécrit
+    // jamais une valeur existante → n'écrase pas ce que Make aurait mis).
+    if (!rt(existing.properties?.[F.tagSio])) props[F.tagSio] = wRt(webiMark(webiType));
     // Désarchivage UNIQUEMENT si reactivate=true (chargement explicite d'un
     // nouveau lot) — jamais dans la synchro auto, sinon elle ressortirait tout.
     if (reactivate && check(existing.properties?.[F.archive])) {
@@ -341,6 +359,7 @@ async function upsertWebiLead(sioContact, kind, reactivate = false) {
         [F.email]: { email },
         [F.tel]: { phone_number: sioContact.phone || null },
         [F.presence]: wSel(presence),
+        [F.tagSio]: wRt(webiMark(webiType)), // webinaire d'origine
         [F.statut]: wSel(ST_APPELER),
         [F.dateInscr]: wDate(today()),
         [F.archive]: wCheck(false), // nouveau lead → file active

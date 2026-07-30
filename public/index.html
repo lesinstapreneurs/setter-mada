@@ -118,6 +118,9 @@
       <!-- Récap de ce qui a déjà été saisi (fiche déjà travaillée) -->
       <div class="fiche-recap hidden" id="ficheRecap"></div>
 
+      <!-- Ressources : liens du bon webinaire (réinscription + replay) -->
+      <div class="fiche-ressources" id="ficheRessources"></div>
+
       <div class="script-body">
 
         <!-- ÉTAPE 0 — CONTACT -->
@@ -155,10 +158,8 @@
             <div class="speech"><p id="speechAbsent"></p></div>
             <div class="q-label">Que préfère le prospect ?</div>
             <div class="chips" id="chipsReinscription"></div>
-            <div class="reinscrit-block" id="reinscritBlock">
-              <strong>✔️ Action System.io :</strong> réinscrire ce lead au webinaire de lundi prochain —
-              poser le tag <code>Réinscrit webi</code> sur son contact et lui envoyer le lien d'inscription par message.
-            </div>
+            <!-- Rempli dynamiquement par fillReinscritBlock() selon le webinaire (IA / RS) -->
+            <div class="reinscrit-block" id="reinscritBlock"></div>
             <div class="booking-section hidden" id="bookingSectionAbs">
               <div class="booking-title">📅 Réserver l'appel avec l'expert</div>
               <div class="rdv-inputs">
@@ -222,6 +223,10 @@
 
             <div class="q-label">Issue de l'appel</div>
             <div class="chips" id="chipsStatutAppel"></div>
+
+            <div class="step-divider"></div>
+            <div class="q-label">Financement détecté <span class="hint">(optionnel — pour tracer)</span></div>
+            <div class="chips" id="chipsFinancement"></div>
 
             <div class="booking-section hidden" id="bookingSection">
               <div class="booking-title">📅 Réserver l'appel stratégique</div>

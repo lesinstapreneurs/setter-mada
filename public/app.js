@@ -6,23 +6,28 @@
 
 const CALENDLY_URL = 'https://calendly.com/contact-3568/etre-rappele-par-les-instapreneurs-set';
 
+/* ── Liens par webinaire (réinscription + replay) ──────────────────────
+   Le lead porte son webinaire d'origine (type_webi : 'ia' | 'social').   */
+const LINKS = {
+  social: {
+    label: '📱 Réseaux sociaux', jour: 'lundi',
+    inscription: 'https://membre.les-instapreneurs.com/conference-gratuite-lundi',
+    replay: 'https://les-instapreneurs.com/replay-conference-lundi/',
+  },
+  ia: {
+    label: '🤖 IA', jour: 'mercredi',
+    inscription: 'https://les-instapreneurs.com/optin-conference-ia/',
+    replay: '', // replay IA : à venir (URL fournie plus tard)
+  },
+};
+function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'social'; }
+
 /* ── Script d'appel : les speechs, à lire mot pour mot ─────────────────
-   {prenom} est remplacé automatiquement par le prénom du lead.          */
-const SPEECHES = {
-  // Étape 1 — ouverture (le prospect a décroché)
-  ouverture: (p) =>
-    `— Bonjour${p ? ' ' + p : ''}, je suis <strong>Sylvie, des Instapreneurs</strong> ! ` +
-    `Je vous prends juste <strong>3 minutes de votre temps</strong>, s'il vous plaît : ` +
-    `on cherche à <strong>améliorer le contenu</strong> qu'on offre chaque lundi lors de notre ` +
-    `<strong>conférence gratuite sur Instagram</strong>, et j'avais <strong>4 questions</strong> à vous poser. ` +
-    `Premièrement, est-ce que vous avez <strong>pu y assister</strong> ?`,
-
-  absent: () =>
-    `— Vous avez loupé quelque chose 🙂 Vous voulez que je vous <strong>réinscrive pour la prochaine</strong>, ` +
-    `ou vous préférez profiter d'un <strong>appel gratuit de 30 min avec un expert de l'équipe</strong> ` +
-    `pour échanger sur votre projet ou votre idée ? ` +
-    `Personnellement, je trouve qu'avec un appel on est <strong>beaucoup plus efficace</strong>… pas vous ?`,
-
+   {prenom} est remplacé automatiquement par le prénom du lead.
+   Deux jeux : `social` (réseaux sociaux, lundi) et `ia` (IA, mercredi).
+   Ressenti / manques / profil / pitch RDV sont communs ; seules l'ouverture,
+   la relance « absent » et le SMS changent selon le webinaire.            */
+const SP_COMMON = {
   ressenti: () =>
     `— Super ! Et globalement, <strong>qu'est-ce qui vous a le plus plu</strong> ?`,
 
@@ -32,21 +37,67 @@ const SPEECHES = {
   profil: () =>
     `— <strong>Vous vous êtes inscrit·e à la conférence pour quelles raisons</strong> ?`,
 
+  // Pitch RDV — on évoque le financement (OF certifié Qualiopi) juste avant de proposer le créneau
   rdv: () =>
-    `— Parfait, j'en ai fini avec mon petit questionnaire ! Du coup, je voulais vous proposer ` +
-    `<strong>gratuitement un appel de 30 minutes avec notre expert, Jordan</strong>. ` +
-    `Il est là pour <strong>échanger sur vos problématiques et vos besoins</strong>. ` +
-    `C'est <strong>quand vous voulez</strong>, selon votre planning — on regarde une dispo ensemble ? ` +
-    `<strong>Ça ne vous engage à rien</strong> : il analyse votre projet ou votre idée, et il vous conseille.`,
-
-  // SMS envoyé quand le prospect ne décroche pas ({prenom} injecté). À peaufiner ici.
-  sms: (p) =>
-    `Bonjour ${p || ''}, je suis Sylvie des Instapreneurs. ` +
-    `Je vous ai appelé·e au sujet de la conférence qu'on organise chaque lundi à 20h — avez-vous pu y assister ?\n` +
-    `Je vous propose un échange gratuit avec notre expert Jordan : 30 minutes offertes pour parler de votre projet et/ou de vos problématiques.\n` +
-    `Je vous envoie le lien pour réserver un appel selon votre planning ?\n` +
-    `Merci d'avance pour votre retour 🙏`,
+    `— Parfait, j'en ai fini avec mon petit questionnaire ! Je voulais vous proposer ` +
+    `<strong>gratuitement un appel de 30 minutes avec notre expert, Jordan</strong>, pour échanger sur vos besoins. ` +
+    `Petit point utile : nous sommes <strong>organisme de formation certifié Qualiopi</strong>, donc ` +
+    `<strong>selon votre situation</strong> — salarié·e, indépendant·e, en recherche d'emploi… — ` +
+    `une partie de l'accompagnement peut même être <strong>finançable</strong>, ` +
+    `et c'est justement ce que Jordan pourra regarder avec vous. ` +
+    `On regarde une dispo ensemble ? <strong>Ça ne vous engage à rien.</strong>`,
 };
+
+const SPEECHES = {
+  social: {
+    ...SP_COMMON,
+    ouverture: (p) =>
+      `— Bonjour${p ? ' ' + p : ''}, je suis <strong>Sylvie, des Instapreneurs</strong> ! ` +
+      `Je vous prends juste <strong>3 minutes de votre temps</strong>, s'il vous plaît : ` +
+      `on cherche à <strong>améliorer le contenu</strong> qu'on offre chaque lundi lors de notre ` +
+      `<strong>conférence gratuite sur Instagram</strong>, et j'avais <strong>4 questions</strong> à vous poser. ` +
+      `Premièrement, est-ce que vous avez <strong>pu y assister</strong> ?`,
+
+    absent: () =>
+      `— Vous avez loupé quelque chose 🙂 Vous voulez que je vous <strong>réinscrive pour lundi prochain</strong>, ` +
+      `ou vous préférez profiter d'un <strong>appel gratuit de 30 min avec un expert de l'équipe</strong> ` +
+      `pour échanger sur votre projet ou votre idée ? ` +
+      `Personnellement, je trouve qu'avec un appel on est <strong>beaucoup plus efficace</strong>… pas vous ?`,
+
+    sms: (p) =>
+      `Bonjour ${p || ''}, je suis Sylvie des Instapreneurs. ` +
+      `Je vous ai appelé·e au sujet de la conférence qu'on organise chaque lundi à 20h — avez-vous pu y assister ?\n` +
+      `Je vous propose un échange gratuit avec notre expert Jordan : 30 minutes offertes pour parler de votre projet et/ou de vos problématiques.\n` +
+      `Je vous envoie le lien pour réserver un appel selon votre planning ?\n` +
+      `Merci d'avance pour votre retour 🙏`,
+  },
+
+  ia: {
+    ...SP_COMMON,
+    ouverture: (p) =>
+      `— Bonjour${p ? ' ' + p : ''}, je suis <strong>Sylvie, des Instapreneurs</strong> ! ` +
+      `Je vous prends juste <strong>3 minutes de votre temps</strong>, s'il vous plaît : ` +
+      `on cherche à <strong>améliorer le contenu</strong> de notre <strong>conférence gratuite sur l'intelligence artificielle</strong> ` +
+      `(chaque mercredi soir), et j'avais <strong>4 questions</strong> à vous poser. ` +
+      `Premièrement, est-ce que vous avez <strong>pu y assister</strong> ?`,
+
+    absent: () =>
+      `— Vous avez loupé quelque chose 🙂 Vous voulez que je vous <strong>réinscrive pour le prochain (mercredi soir)</strong>, ` +
+      `ou vous préférez profiter d'un <strong>appel gratuit de 30 min avec un expert de l'équipe</strong> ` +
+      `pour échanger sur votre projet ou votre idée ? ` +
+      `Personnellement, je trouve qu'avec un appel on est <strong>beaucoup plus efficace</strong>… pas vous ?`,
+
+    sms: (p) =>
+      `Bonjour ${p || ''}, je suis Sylvie des Instapreneurs. ` +
+      `Je vous ai appelé·e au sujet de notre conférence sur l'IA (chaque mercredi à 20h) — avez-vous pu y assister ?\n` +
+      `Je vous propose un échange gratuit avec notre expert Jordan : 30 minutes offertes pour parler de votre projet et/ou de vos problématiques.\n` +
+      `Je vous envoie le lien pour réserver un appel selon votre planning ?\n` +
+      `Merci d'avance pour votre retour 🙏`,
+  },
+};
+
+// Jeu de speechs adapté au webinaire d'origine du lead
+function speechesFor(lead) { return SPEECHES[webiTypeOf(lead)]; }
 
 /* ── Options des questions ─────────────────────────────────────────────── */
 const OPTIONS = {
@@ -90,14 +141,22 @@ const OPTIONS = {
     'Veut juste réfléchir', 'Pas convaincu·e par l\'offre', 'Déjà accompagné·e ailleurs',
     'Ne se sent pas concerné·e',
   ],
+  // Piste de financement détectée (optionnel) — trace l'info dans Notion
+  financement: [
+    { label: 'CPF', value: 'CPF' },
+    { label: 'OPCO', value: 'OPCO' },
+    { label: 'France Travail', value: 'France Travail' },
+    { label: 'Autofinancement', value: 'Autofinancement' },
+    { label: 'À vérifier', value: 'À vérifier' },
+  ],
 };
 
 /* ── Données de démo (si backend non connecté) ─────────────────────────── */
 const DEMO_LEADS = [
   { id: 'demo-1', nom: 'Marie Dupont', telephone: '0612345678', email: 'marie@mail.com', statut: '🔥 Présent webi', webi: 'Présent', score: 9, niveau_ig: 'Débutant', situation_pro: 'Salarié', objectif: 'Monétiser ses réseaux', lien_instagram: 'https://instagram.com/mariedupont', briefing: 'Lead très chaud : salariée, veut quitter son emploi, a suivi tout le webinaire. CPF dispo a priori.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
   { id: 'demo-2', nom: 'Lucas Bernard', telephone: '0698765432', email: 'lucas@mail.com', statut: '🔥 Présent webi', webi: 'Présent', score: 7, niveau_ig: 'Intermédiaire', situation_pro: 'Auto-entrepreneur', objectif: 'Construire sa marque perso', lien_instagram: '', briefing: 'Auto-entrepreneur, OPCO possible. Cherche de la clarté sur son positionnement.', nb_tentatives: 1, notes: '', financement: 'Non identifié' },
-  { id: 'demo-3', nom: 'Sophie Martin', telephone: '0611223344', email: 'sophie@mail.com', statut: '📭 Absent webi', webi: 'Absent', score: 6, niveau_ig: 'Débutant', situation_pro: 'En reconversion', objectif: 'Quitter son emploi', lien_instagram: 'https://instagram.com/sophiemartin', briefing: 'En reconversion, motivée, mais n\'a pas vu le webinaire. Proposer la réinscription en douceur.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
-  { id: 'demo-4', nom: 'Thomas Leclerc', telephone: '0633445566', email: 'thomas@mail.com', statut: '📭 Absent webi', webi: 'Absent', score: 3, niveau_ig: 'Débutant', situation_pro: 'Salarié', objectif: '', lien_instagram: '', briefing: 'Score froid : inscrit par curiosité, 2 tentatives sans réponse. Dernier essai avant de classer.', nb_tentatives: 2, notes: '', financement: 'Non identifié' },
+  { id: 'demo-3', nom: 'Sophie Martin', telephone: '0611223344', email: 'sophie@mail.com', statut: '📭 Absent webi', webi: 'Absent', type_webi: 'ia', score: 6, niveau_ig: 'Débutant', situation_pro: 'En reconversion', objectif: 'Quitter son emploi', lien_instagram: 'https://instagram.com/sophiemartin', briefing: 'En reconversion, motivée, mais n\'a pas vu le webinaire IA. Proposer la réinscription en douceur.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
+  { id: 'demo-4', nom: 'Thomas Leclerc', telephone: '0633445566', email: 'thomas@mail.com', statut: '📭 Absent webi', webi: 'Absent', type_webi: 'social', score: 3, niveau_ig: 'Débutant', situation_pro: 'Salarié', objectif: '', lien_instagram: '', briefing: 'Score froid : inscrit par curiosité, 2 tentatives sans réponse. Dernier essai avant de classer.', nb_tentatives: 2, notes: '', financement: 'Non identifié' },
 ];
 
 /* ── État ──────────────────────────────────────────────────────────────── */
@@ -118,7 +177,7 @@ function newCallState() {
     repondu: null, vuWebi: null, reinscription: null,
     manques: [], positifs: [], objectifs: [], objectifAutre: '',
     issue: null, nbTentatives: 0,
-    objections: [], objectionDetail: '',
+    objections: [], objectionDetail: '', financement: null,
   };
 }
 
@@ -241,6 +300,10 @@ function renderLeads() {
     const scoreCls = l.score >= 7 ? 'score-hot' : l.score >= 4 ? 'score-warm' : 'score-cold';
     const webiCls = l.webi === 'Présent' ? 'badge-present' : 'badge-absent';
     const webiLabel = l.webi === 'Présent' ? '🔥 Présent webi' : '📭 Absent webi';
+    const isIA = l.type_webi === 'ia';
+    const typeCls = isIA ? 'badge-ia' : 'badge-rs';
+    const typeLabel = isIA ? '🤖 IA' : '📱 RS';
+    const typeFlag = isIA ? ' type-ia' : ' type-rs';
     const active = currentLead && currentLead.id === l.id ? ' active' : '';
     const orange = l.statut === '🔄 À réinscrire' ? ' orange-flag' : '';
     const dimmed = (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') ? ' dimmed' : '';
@@ -249,12 +312,13 @@ function renderLeads() {
       l.statut === '🔄 À rappeler' ? '<span class="badge badge-statut">À rappeler</span>' :
       l.statut === '🚫 Pas intéressé' ? '<span class="badge badge-statut">Pas intéressé</span>' :
       l.statut === '❌ Injoignable' ? '<span class="badge badge-statut">Injoignable</span>' : '';
-    return `<div class="lead-card${active}${orange}${dimmed}" onclick="openLead('${l.id}')">
+    return `<div class="lead-card${active}${orange}${dimmed}${typeFlag}" onclick="openLead('${l.id}')">
       <div class="card-top">
         <span class="card-name">${esc(l.nom)}</span>
         <span class="score-pill ${scoreCls}">${l.score}/10</span>
       </div>
       <div class="card-badges">
+        <span class="badge ${typeCls}">${typeLabel}</span>
         <span class="badge ${webiCls}">${webiLabel}</span>
         ${statutBadge}
         ${l.nb_tentatives > 0 ? `<span class="badge badge-tentatives">${l.nb_tentatives} appel${l.nb_tentatives > 1 ? 's' : ''}</span>` : ''}
@@ -347,6 +411,11 @@ function prefillFromLead(lead) {
   const autre = reasons.filter((r) => !OPTIONS.objectifs.includes(r)).join(', ');
   preselectMulti('chipsObjectifs', known); call.objectifs = known;
   if (autre) { document.getElementById('objectifAutre').value = autre; call.objectifAutre = autre; }
+  // Financement déjà détecté
+  if (lead.financement && OPTIONS.financement.some((o) => o.value === lead.financement)) {
+    preselectSingle('chipsFinancement', lead.financement, 'selected-oui');
+    call.financement = lead.financement;
+  }
   // Objection
   let hasObjection = false;
   if (lead.objection) {
@@ -390,6 +459,7 @@ function renderFicheRecap(lead) {
   if (lead.manques) rows.push(['Ce qui a manqué', lead.manques]);
   if (lead.objectif) rows.push(['Raisons d\'inscription', lead.objectif]);
   if (lead.objection) rows.push(['Objection', lead.objection]);
+  if (lead.financement) rows.push(['Financement', lead.financement]);
   if (lead.date_rdv) rows.push(['RDV', String(lead.date_rdv).replace('T', ' à ').slice(0, 16)]);
 
   if (!rows.length && !lead.notes) { box.classList.add('hidden'); box.innerHTML = ''; return; }
@@ -402,6 +472,51 @@ function renderFicheRecap(lead) {
   }
   box.innerHTML = html;
   box.classList.remove('hidden');
+}
+
+/* ── Ressources : liens du bon webinaire (réinscription + replay) ─────── */
+function renderRessources(lead) {
+  const box = document.getElementById('ficheRessources');
+  if (!box) return;
+  const L = LINKS[webiTypeOf(lead)];
+  const rows = [`<div class="res-title">🔗 Ressources — ${L.label}</div>`];
+  rows.push(resLink('📝 Réinscription', L.inscription));
+  if (L.replay) rows.push(resLink('▶️ Replay', L.replay));
+  else rows.push('<div class="res-muted">▶️ Replay : à venir</div>');
+  box.innerHTML = rows.join('');
+}
+
+function resLink(label, url) {
+  return `<div class="res-row"><span class="res-lbl">${label}</span>` +
+    `<a class="res-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>` +
+    `<button class="res-copy" title="Copier le lien" onclick="copyText(${JSON.stringify(url)}, this)">📋</button></div>`;
+}
+
+// Remplit le bloc de réinscription (absent → « réinscrire ») avec le bon lien
+// et le bon wording selon le webinaire. IA : pas de tag lundi, envoi manuel.
+function fillReinscritBlock(lead) {
+  const block = document.getElementById('reinscritBlock');
+  if (!block) return;
+  const L = LINKS[webiTypeOf(lead)];
+  if (webiTypeOf(lead) === 'ia') {
+    block.innerHTML =
+      `<strong>✔️ Action :</strong> réinscrire ce lead au <strong>webinaire IA (mercredi soir)</strong> — ` +
+      `envoie-lui le lien d'inscription par message. ` +
+      `<em>(Pas de tag « Réinscrit webi » : celui-ci réinscrit au lundi.)</em>` +
+      resLink('📝 Inscription IA', L.inscription);
+  } else {
+    block.innerHTML =
+      `<strong>✔️ Action System.io :</strong> réinscrire ce lead au <strong>webinaire de lundi prochain</strong> — ` +
+      `le tag <code>Réinscrit webi</code> est posé automatiquement. Tu peux aussi lui envoyer le lien :` +
+      resLink('📝 Inscription lundi', L.inscription);
+  }
+}
+
+// Copie un texte dans le presse-papier + petit feedback visuel sur le bouton
+function copyText(text, btn) {
+  navigator.clipboard?.writeText(text).then(() => {
+    if (btn) { const old = btn.textContent; btn.textContent = '✓'; setTimeout(() => (btn.textContent = old), 1200); }
+  }).catch(() => showToast('⚠️ Copie impossible'));
 }
 
 // Force l'enregistrement des changements en attente du lead courant
@@ -435,8 +550,9 @@ function openLead(id) {
   const initiales = (currentLead.nom || '?').split(/\s+/).map((p) => p[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('leadAvatar').textContent = initiales;
   document.getElementById('leadName').textContent = currentLead.nom;
+  const wLabel = webiTypeOf(currentLead) === 'ia' ? '🤖 Webi IA' : '📱 Webi Réseaux sociaux';
   document.getElementById('leadMeta').textContent =
-    `${currentLead.webi === 'Présent' ? '🔥 Présent au webinaire' : '📭 Absent du webinaire'}` +
+    `${wLabel} · ${currentLead.webi === 'Présent' ? '🔥 présent' : '📭 absent'}` +
     ` · Score ${currentLead.score}/10 · ${call.nbTentatives} appel${call.nbTentatives > 1 ? 's' : ''} passé${call.nbTentatives > 1 ? 's' : ''}`;
 
   // Infos
@@ -458,22 +574,24 @@ function openLead(id) {
   document.getElementById('infoBriefing').textContent =
     currentLead.briefing || 'Pas encore de briefing pour ce lead.';
 
-  // Speechs personnalisés
-  document.getElementById('speechOuverture').innerHTML = SPEECHES.ouverture(prenom);
-  document.getElementById('speechAbsent').innerHTML = SPEECHES.absent();
-  document.getElementById('speechRessenti').innerHTML = SPEECHES.ressenti();
-  document.getElementById('speechManques').innerHTML = SPEECHES.manques();
-  document.getElementById('speechProfil').innerHTML = SPEECHES.profil();
-  document.getElementById('speechRdv').innerHTML = SPEECHES.rdv();
-  document.getElementById('speechSms').textContent = SPEECHES.sms(prenom);
+  // Speechs personnalisés (jeu adapté au webinaire d'origine)
+  const sp = speechesFor(currentLead);
+  document.getElementById('speechOuverture').innerHTML = sp.ouverture(prenom);
+  document.getElementById('speechAbsent').innerHTML = sp.absent();
+  document.getElementById('speechRessenti').innerHTML = sp.ressenti();
+  document.getElementById('speechManques').innerHTML = sp.manques();
+  document.getElementById('speechProfil').innerHTML = sp.profil();
+  document.getElementById('speechRdv').innerHTML = sp.rdv();
+  document.getElementById('speechSms').textContent = sp.sms(prenom);
 
   // Notes existantes
   document.getElementById('notesLibres').value = currentLead.notes || '';
   clearTimeout(autosaveTimer);
   setSaveStatus('');
 
-  // Récap visible + restitution des cases/étapes déjà renseignées
+  // Récap visible + ressources (liens du bon webinaire) + restitution
   renderFicheRecap(currentLead);
+  renderRessources(currentLead);
   prefillFromLead(currentLead);
 
   // Timer
@@ -574,6 +692,7 @@ function renderAllChipGroups() {
   renderChipGroup('chipsObjectifs', OPTIONS.objectifs, { multi: true, onSelect: (v) => { call.objectifs = v; scheduleAutosave(); } });
   renderChipGroup('chipsObjections', OPTIONS.objections, { multi: true, onSelect: (v) => { call.objections = v; saveObjection(); } });
   renderChipGroup('chipsStatutAppel', OPTIONS.statutsAppel, { onSelect: onStatutAppel });
+  renderChipGroup('chipsFinancement', OPTIONS.financement, { onSelect: (v) => { call.financement = v; scheduleAutosave(); } });
 }
 
 // Construit la chaîne d'objection et l'enregistre (champ dédié dans Notion)
@@ -667,7 +786,11 @@ function onReinscription(val) {
     block.classList.add('show');
     booking.classList.add('hidden');
     showObjections(false);
-    setStatut('🔄 À réinscrire', '🟠 Lead « à réinscrire » — tag « Réinscrit webi » posé dans System.io');
+    fillReinscritBlock(currentLead);
+    const msg = webiTypeOf(currentLead) === 'ia'
+      ? '🟠 Lead IA « à réinscrire » — envoie le lien d\'inscription IA (pas de tag lundi)'
+      : '🟠 Lead « à réinscrire » — tag « Réinscrit webi » posé dans System.io';
+    setStatut('🔄 À réinscrire', msg);
   } else if (val === 'call') {
     block.classList.remove('show');
     booking.classList.remove('hidden'); // le booking confirmera le RDV
@@ -809,6 +932,7 @@ function buildPayload() {
   const raisons = [...call.objectifs];
   if (call.objectifAutre) raisons.push(call.objectifAutre);
   if (raisons.length) payload.objectif = raisons.join(', ');
+  if (call.financement) payload.financement = call.financement;
   return payload;
 }
 

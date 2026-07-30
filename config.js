@@ -6,13 +6,20 @@
 // ne jamais normaliser / slugifier.
 // ─────────────────────────────────────────────────────────────────────────
 
+// Chaque tag porte son webinaire d'origine (type : 'social' = réseaux sociaux
+// du lundi · 'ia' = conférence IA du mercredi). Le type suit le lead partout
+// (couleur, speech, liens de réinscription).
 const TAGS_PRESENT_WEBI = [
-  { name: 'Présent Webi (lundi)', id: 1676347 },
+  { name: 'Présent Webi (lundi)', id: 1676347, type: 'social' },
+  { name: 'Présent webi IA', id: 2112690, type: 'ia' },
   // Ajouter ici les futurs tags "présent webi"
 ];
 
 const TAGS_ABSENT_WEBI = [
-  { name: 'Absent Webi (lundi)', id: 1701606 },
+  { name: 'Absent Webi (lundi)', id: 1701606, type: 'social' },
+  // Tag "absent" IA dédié, posé APRÈS le webinaire (comme le lundi) → la synchro
+  // ne peut jamais charger un inscrit avant sa conférence du mercredi.
+  { name: 'Absent webi IA', id: 2112775, type: 'ia' },
   // Ajouter ici les futurs tags "absent webi"
 ];
 
@@ -50,6 +57,19 @@ function matchTag(tag) {
   return null;
 }
 
+/**
+ * Webinaire d'origine d'un tag (présent OU absent).
+ * @returns {'ia'|'social'|null}
+ */
+function webiTypeOfTag(tag) {
+  const name = String(tag?.name ?? '').trim();
+  const id = Number(tag?.id);
+  const hit = [...TAGS_PRESENT_WEBI, ...TAGS_ABSENT_WEBI].find(
+    (t) => t.name === name || (Number.isFinite(id) && t.id === id)
+  );
+  return hit ? hit.type : null;
+}
+
 module.exports = {
   TAGS_PRESENT_WEBI,
   TAGS_ABSENT_WEBI,
@@ -57,4 +77,5 @@ module.exports = {
   TAG_REINSCRIT_WEBI,
   SIO_TAG,
   matchTag,
+  webiTypeOfTag,
 };

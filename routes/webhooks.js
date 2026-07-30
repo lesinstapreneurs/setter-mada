@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 const express = require('express');
 const crypto = require('crypto');
-const { matchTag } = require('../config');
+const { matchTag, webiTypeOfTag } = require('../config');
 const notion = require('../services/notion');
 const nocrm = require('../services/nocrm');
 
@@ -40,7 +40,7 @@ async function processSioTag(body) {
     if (email) await notion.archiveSetterLead(email);
     return;
   }
-  await notion.upsertWebiLead(contact, kind);
+  await notion.upsertWebiLead(contact, kind, false, webiTypeOfTag(tag));
 }
 
 // ── POST /webhook/calendly ───────────────────────────────────────────────

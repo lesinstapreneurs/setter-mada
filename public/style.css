@@ -175,8 +175,17 @@ body {
 .badge-reinscrit { background: var(--orange-bg); color: var(--orange-soft); border: 1px solid var(--orange-border); }
 .badge-statut    { background: #eef0e8; color: var(--text-soft); }
 .badge-tentatives{ background: #eef0e8; color: var(--text-faint); margin-left: auto; }
+/* Webinaire d'origine : IA (violet) vs Réseaux sociaux (bleu) */
+.badge-ia        { background: #efe9fb; color: #6b3fb8; }
+.badge-rs        { background: #e7f0fb; color: #2563a8; }
 
 .card-phone { font-size: 12px; color: var(--text-faint); margin-top: 5px; }
+
+/* Liseré gauche coloré selon le webinaire, pour repérage rapide dans la liste */
+.lead-card.type-ia { border-left: 3px solid #8b5cf6; }
+.lead-card.type-rs { border-left: 3px solid #3b82f6; }
+/* …mais le liseré orange « à réinscrire » (statut) reste prioritaire */
+.lead-card.orange-flag { border-left-color: var(--orange); }
 
 /* ── Colonne droite — script ──────────────────────────────────────────── */
 .main { overflow-y: auto; background: var(--bg); }
@@ -257,6 +266,27 @@ body {
 .recap-cell { display: flex; flex-direction: column; gap: 1px; }
 .recap-k { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); }
 .recap-v { font-size: 13px; color: var(--text); }
+
+/* ── Ressources fiche (liens du bon webinaire) ────────────────────────── */
+.fiche-ressources {
+  margin: 10px 24px 0; padding: 11px 15px;
+  background: var(--panel-soft); border: 1px solid var(--border); border-radius: 11px;
+}
+.fiche-ressources:empty { display: none; }
+.res-title { font-size: 12.5px; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; }
+.res-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.res-lbl { font-size: 12px; font-weight: 700; color: var(--text-soft); min-width: 108px; }
+.res-link {
+  flex: 1; font-size: 12.5px; color: var(--lime-deep); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.res-link:hover { text-decoration: underline; }
+.res-copy {
+  border: 1px solid var(--border-strong); background: #fff; border-radius: 7px;
+  padding: 3px 8px; cursor: pointer; font-size: 12px; line-height: 1;
+}
+.res-copy:hover { border-color: var(--lime-dark); }
+.res-muted { font-size: 12px; color: var(--text-faint); margin-top: 6px; font-style: italic; }
 
 .script-body { padding: 20px 24px 30px; max-width: 860px; }
 

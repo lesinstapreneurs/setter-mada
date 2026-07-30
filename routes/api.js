@@ -52,7 +52,11 @@ router.patch('/leads/:id', async (req, res) => {
     res.json({ success: true });
     // Répercussion System.io si le statut correspond à un tag (best-effort)
     const tagId = body.statut && STATUT_TO_SIO_TAG[body.statut];
-    if (tagId && out?.email) tagSioAsync(out.email, tagId, body.statut);
+    // Exception : la réinscription d'un lead IA ne doit PAS poser le tag
+    // « Réinscrit webi » (= automation du webinaire LUNDI). Pour l'IA, la setter
+    // envoie le lien d'inscription IA à la main (affiché dans la fiche).
+    const skipReinscritIA = tagId === SIO_TAG.REINSCRIT && out?.type_webi === 'ia';
+    if (tagId && out?.email && !skipReinscritIA) tagSioAsync(out.email, tagId, body.statut);
   } catch (e) {
     console.error('PATCH /api/leads :', e.message);
     res.status(500).json({ error: e.message });

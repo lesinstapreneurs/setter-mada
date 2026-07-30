@@ -29,7 +29,10 @@ function buildDescription(lead, dateRdv) {
   }
   if (lead.telephone) L.push(`📞 ${lead.telephone}`);
   if (lead.email) L.push(`📧 ${lead.email}`);
-  if (lead.webi) L.push(`Webinaire : ${lead.webi}`);
+  if (lead.webi) {
+    const wname = lead.type_webi === 'ia' ? 'IA' : 'Réseaux sociaux';
+    L.push(`Webinaire : ${wname} — ${lead.webi === 'Présent' ? 'présent' : 'absent'}`);
+  }
   const qual = [];
   if (lead.objectif) qual.push(`Raisons d'inscription : ${lead.objectif}`);
   if (lead.situation_pro) qual.push(`Situation : ${lead.situation_pro}`);

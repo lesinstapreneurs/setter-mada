@@ -53,13 +53,15 @@ function hasPhone(c) {
   return systemeio.field(c, 'phone_number').replace(/\D/g, '').length >= 8;
 }
 
-// Rassemble (dédupliqués par email) les contacts portant l'un des tags listés
+// Rassemble (dédupliqués par email) les contacts portant l'un des tags listés.
+// On mémorise le webinaire d'origine (tag.type) sur chaque contact pour pouvoir
+// le persister ensuite dans Notion.
 async function collect(tagList, registeredAfter, registeredBefore) {
   const map = new Map();
   for (const tag of tagList) {
     const items = await systemeio.listContactsByTag(tag.id, { registeredAfter, registeredBefore });
     for (const c of items) {
-      if (c.email) map.set(c.email.toLowerCase(), c);
+      if (c.email) { c._webiType = tag.type || null; map.set(c.email.toLowerCase(), c); }
     }
   }
   return map;
@@ -94,12 +96,12 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
   for (const [email, c] of present) {
     if (resa.has(email)) continue;
     if (!hasPhone(c)) { skippedNoPhone++; continue; }
-    actions.push({ email, kind: 'present', contact: c });
+    actions.push({ email, kind: 'present', contact: c, webiType: c._webiType });
   }
   for (const [email, c] of absent) {
     if (resa.has(email) || present.has(email)) continue;
     if (!hasPhone(c)) { skippedNoPhone++; continue; }
-    actions.push({ email, kind: 'absent', contact: c });
+    actions.push({ email, kind: 'absent', contact: c, webiType: c._webiType });
   }
 
   const summary = {
@@ -122,7 +124,7 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
   for (const a of actions) {
     try {
       if (a.kind === 'resa') { await notion.archiveSetterLead(a.email); okArchives++; }
-      else { await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate); okUpserts++; }
+      else { await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate, a.webiType); okUpserts++; }
     } catch (e) {
       errors++;
       console.error(`⚠️ Sync ${a.kind} ${a.email} : ${e.message}`);
@@ -151,7 +153,9 @@ function msUntilNextParisHour(hour) {
 }
 
 // Programme la synchro : une passe peu après le démarrage (peuple la file tout
-// de suite) puis tous les jours à SYSTEMEIO_SYNC_HOUR h (défaut 6) heure de Paris.
+// de suite) puis PLUSIEURS fois par jour aux heures de SYSTEMEIO_SYNC_HOURS
+// (défaut « 6,14 » = 6h et 14h, Europe/Paris). Deux passages/jour → les leads
+// qui réservent un appel (tag « Résa call ») sortent vite de la file.
 // Active par défaut dès que la clé MCP est présente ; coupée si
 // SYSTEMEIO_SYNC_ENABLED=false.
 function startScheduler() {
@@ -163,22 +167,31 @@ function startScheduler() {
     console.warn('⚠️ Synchro System.io→Notion inactive : SYSTEMEIO_MCP_KEY manquant.');
     return null;
   }
-  const hour = Math.min(23, Math.max(0, Number(process.env.SYSTEMEIO_SYNC_HOUR ?? 6)));
+  // Heures de passage (Europe/Paris). SYSTEMEIO_SYNC_HOUR (singulier) reste
+  // accepté pour rétro-compat ; sinon liste séparée par des virgules.
+  const raw = process.env.SYSTEMEIO_SYNC_HOURS ?? process.env.SYSTEMEIO_SYNC_HOUR ?? '6,14';
+  const hours = [...new Set(
+    String(raw).split(',')
+      .map((h) => Math.min(23, Math.max(0, Number(String(h).trim()))))
+      .filter((h) => Number.isFinite(h))
+  )].sort((a, b) => a - b);
   const run = (tag) => syncOnce({}).catch((e) => console.error(`Sync ${tag} :`, e.message));
 
-  // 1) passe initiale 15 s après le boot
+  // 1) passe initiale 15 s après le boot (nettoie les bookés + charge les nouveaux)
   setTimeout(() => run('initiale'), 15_000);
 
-  // 2) puis chaque jour à HH:00 (Europe/Paris), ré-armé après chaque passe
-  const arm = () => {
+  // 2) puis à chaque heure programmée (Europe/Paris), ré-armée après chaque passe
+  const armAt = (hour) => {
     const wait = msUntilNextParisHour(hour);
-    console.log(
-      `▶️  Synchro System.io→Notion : prochaine passe quotidienne dans ` +
-      `~${Math.round(wait / 360000) / 10} h (${hour}h, Europe/Paris).`
-    );
-    setTimeout(async () => { await run('quotidienne'); arm(); }, wait);
+    setTimeout(async () => { await run(`${hour}h`); armAt(hour); }, wait);
+    return wait;
   };
-  arm();
+  const waits = hours.map(armAt);
+  const nextH = waits.length ? Math.round(Math.min(...waits) / 360000) / 10 : '?';
+  console.log(
+    `▶️  Synchro System.io→Notion : ${hours.length} passage(s)/jour ` +
+    `(${hours.map((h) => h + 'h').join(', ')}, Europe/Paris) — prochaine dans ~${nextH} h.`
+  );
   return true;
 }
 
