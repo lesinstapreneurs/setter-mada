@@ -43,7 +43,7 @@ const SP_COMMON = {
     `<strong>gratuitement un appel de 30 minutes avec notre expert, Jordan</strong>, pour échanger sur vos besoins. ` +
     `Petit point utile : nous sommes <strong>organisme de formation certifié Qualiopi</strong>, donc ` +
     `<strong>selon votre situation</strong> — salarié·e, indépendant·e, en recherche d'emploi… — ` +
-    `une partie de l'accompagnement peut même être <strong>finançable</strong>, ` +
+    `l'accompagnement peut même être <strong>financé en totalité</strong>, ` +
     `et c'est justement ce que Jordan pourra regarder avec vous. ` +
     `On regarde une dispo ensemble ? <strong>Ça ne vous engage à rien.</strong>`,
 };
