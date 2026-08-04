@@ -252,7 +252,10 @@ async function loadLeads() {
 // Catégorie d'un lead pour les filtres (chaque lead est dans un seul bucket)
 function leadCategory(l) {
   if (l.archived) return 'archive'; // lot archivé → onglet Archivés
-  if (l.statut === '✅ RDV booké' || l.a_reserve) return 'booke';
+  // « Booké » = uniquement un vrai RDV plateforme (statut ✅ RDV booké). On IGNORE
+  // le flag `a_reserve` de System.io (résa côté System.io ≠ RDV plateforme) →
+  // ces fiches sont classées selon leur statut setter réel.
+  if (l.statut === '✅ RDV booké') return 'booke';
   if (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') return 'perdu';
   if (l.statut === '🔄 À rappeler' || l.statut === '🔄 À réinscrire') return 'rappeler';
   return 'appeler'; // 📞 À appeler / vide
