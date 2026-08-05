@@ -151,6 +151,33 @@ const OPTIONS = {
   ],
 };
 
+// Variantes des réponses pour les leads du webinaire IA (sinon → jeu par défaut,
+// = réseaux sociaux). Seules ces clés changent ; le reste est commun.
+const OPTIONS_IA = {
+  reinscription: [
+    { label: 'Réinscrire pour mercredi', value: 'reinscrire', tone: 'orange' },
+    { label: 'Réserver un call', value: 'call', tone: 'oui' },
+    { label: 'Pas intéressé·e', value: 'non', tone: 'non' },
+  ],
+  positifs: [
+    'Les outils IA montrés', 'Les cas d\'usage concrets', 'Le gain de temps',
+    'Les exemples réels', 'Le potentiel business', 'La simplicité expliquée',
+  ],
+  manques: [
+    'Trop technique', 'Pas assez d\'exemples', 'Trop rapide',
+    'Manque de cas concrets', 'Son ou image moyens', 'Rien à signaler',
+  ],
+  objectifs: [
+    'Gagner du temps avec l\'IA', 'Automatiser son business', 'Créer du contenu avec l\'IA',
+    'Monter en compétence IA', 'Ne pas rater le virage IA',
+  ],
+};
+
+// Jeu d'options pour une clé donnée, adapté au webinaire d'origine du lead
+function optFor(key, lead) {
+  return (webiTypeOf(lead) === 'ia' && OPTIONS_IA[key]) ? OPTIONS_IA[key] : OPTIONS[key];
+}
+
 /* ── Données de démo (si backend non connecté) ─────────────────────────── */
 const DEMO_LEADS = [
   { id: 'demo-1', nom: 'Marie Dupont', telephone: '0612345678', email: 'marie@mail.com', statut: '🔥 Présent webi', webi: 'Présent', score: 9, niveau_ig: 'Débutant', situation_pro: 'Salarié', objectif: 'Monétiser ses réseaux', lien_instagram: 'https://instagram.com/mariedupont', briefing: 'Lead très chaud : salariée, veut quitter son emploi, a suivi tout le webinaire. CPF dispo a priori.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
@@ -408,10 +435,11 @@ function prefillFromLead(lead) {
   const positifs = splitList(lead.positifs);
   preselectMulti('chipsManques', manques); call.manques = manques;
   preselectMulti('chipsPositifs', positifs); call.positifs = positifs;
-  // Étape 3 — raisons (options connues + champ « Autre »)
+  // Étape 3 — raisons (options connues du bon webinaire + champ « Autre »)
   const reasons = splitList(lead.objectif);
-  const known = reasons.filter((r) => OPTIONS.objectifs.includes(r));
-  const autre = reasons.filter((r) => !OPTIONS.objectifs.includes(r)).join(', ');
+  const objOptions = optFor('objectifs', lead);
+  const known = reasons.filter((r) => objOptions.includes(r));
+  const autre = reasons.filter((r) => !objOptions.includes(r)).join(', ');
   preselectMulti('chipsObjectifs', known); call.objectifs = known;
   if (autre) { document.getElementById('objectifAutre').value = autre; call.objectifAutre = autre; }
   // Financement déjà détecté
@@ -540,6 +568,7 @@ function openLead(id) {
 
   call = newCallState();
   call.nbTentatives = currentLead.nb_tentatives || 0;
+  renderTypedChips(currentLead); // réponses adaptées au webinaire (IA / réseaux sociaux)
   resetScriptUI();
   renderLeads();
 
@@ -689,13 +718,19 @@ function renderChipGroup(containerId, items, { multi = false, onSelect } = {}) {
 function renderAllChipGroups() {
   renderChipGroup('chipsRepondu', OPTIONS.repondu, { onSelect: onRepondu });
   renderChipGroup('chipsVuWebi', OPTIONS.vuWebi, { onSelect: onVuWebi });
-  renderChipGroup('chipsReinscription', OPTIONS.reinscription, { onSelect: onReinscription });
-  renderChipGroup('chipsManques', OPTIONS.manques, { multi: true, onSelect: (v) => { call.manques = v; scheduleAutosave(); } });
-  renderChipGroup('chipsPositifs', OPTIONS.positifs, { multi: true, onSelect: (v) => { call.positifs = v; scheduleAutosave(); } });
-  renderChipGroup('chipsObjectifs', OPTIONS.objectifs, { multi: true, onSelect: (v) => { call.objectifs = v; scheduleAutosave(); } });
   renderChipGroup('chipsObjections', OPTIONS.objections, { multi: true, onSelect: (v) => { call.objections = v; saveObjection(); } });
   renderChipGroup('chipsStatutAppel', OPTIONS.statutsAppel, { onSelect: onStatutAppel });
   renderChipGroup('chipsFinancement', OPTIONS.financement, { onSelect: (v) => { call.financement = v; scheduleAutosave(); } });
+  renderTypedChips(null); // valeurs par défaut (réseaux sociaux) avant qu'un lead soit ouvert
+}
+
+// Réponses dont le contenu dépend du webinaire d'origine (IA vs réseaux sociaux).
+// Re-rendu à chaque ouverture de fiche avec le bon jeu (via optFor).
+function renderTypedChips(lead) {
+  renderChipGroup('chipsReinscription', optFor('reinscription', lead), { onSelect: onReinscription });
+  renderChipGroup('chipsManques', optFor('manques', lead), { multi: true, onSelect: (v) => { call.manques = v; scheduleAutosave(); } });
+  renderChipGroup('chipsPositifs', optFor('positifs', lead), { multi: true, onSelect: (v) => { call.positifs = v; scheduleAutosave(); } });
+  renderChipGroup('chipsObjectifs', optFor('objectifs', lead), { multi: true, onSelect: (v) => { call.objectifs = v; scheduleAutosave(); } });
 }
 
 // Construit la chaîne d'objection et l'enregistre (champ dédié dans Notion)
