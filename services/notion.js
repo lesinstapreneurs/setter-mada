@@ -436,6 +436,26 @@ async function archiveActiveCohort() {
   return n;
 }
 
+// Archive les fiches ACTIVES qui ont déjà réservé un call (flag System.io
+// a_reserve / gisement « A réservé un call ») mais qui ne sont PAS un vrai RDV
+// booké plateforme → elles sortent de la file d'appel (gardées dans Archivés).
+async function archiveReservedCalls() {
+  const pages = await allPages();
+  const targets = pages.filter((p) => {
+    if (check(p.properties?.[F.archive])) return false;
+    if (sel(p.properties?.[F.statut]) === ST_BOOKE) return false;
+    return check(p.properties?.[F.aReserve]) || sel(p.properties?.[F.gisement]) === '🟢 A réservé un call';
+  });
+  const names = [];
+  for (const page of targets) {
+    await notionFetch(`/pages/${page.id}`, 'PATCH', { properties: { [F.archive]: wCheck(true) } });
+    names.push(rt(page.properties?.[F.prenom]) || t(page.properties?.[F.nom]) || mail(page.properties?.[F.email]));
+  }
+  touchLeadsCache();
+  console.log(`🗄️  Archivage « a réservé un call » : ${names.length} fiches.`);
+  return { archived: names.length, names };
+}
+
 // Tag « Résa call » venu de System.io : la résa a pu être déclenchée par un
 // email/automation, PAS par la setter → on sort le lead de la file mais on ne
 // le compte PAS comme RDV booké (statut inchangé). Seuls le booking in-app
@@ -480,5 +500,6 @@ module.exports = {
   upsertWebiLead,
   archiveSetterLead,
   markBookedByEmail,
+  archiveReservedCalls,
   warmupLeadsCache,
 };

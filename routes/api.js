@@ -161,4 +161,15 @@ router.post('/archive', async (req, res) => {
   }
 });
 
+// POST /api/archive-resa — archive les fiches ayant déjà réservé un call
+// (flag System.io) mais toujours dans la file → les sort du fil d'appel.
+router.post('/archive-resa', async (req, res) => {
+  try {
+    res.json({ success: true, ...(await notion.archiveReservedCalls()) });
+  } catch (e) {
+    console.error('POST /api/archive-resa :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
