@@ -98,6 +98,46 @@ async function queryAll(body = {}) {
   return results;
 }
 
+// ── Cache mémoire des fiches ──────────────────────────────────────────────
+// getSetterLeads() et getStats() balayaient CHACUN toute la base (~35 appels
+// Notion paginés → ~15 s chacun). On mutualise : une seule requête « toutes les
+// fiches », mise en cache et rafraîchie en fond (serve-stale-while-revalidate).
+// Invalidée à la moindre écriture → aucune donnée obsolète après une action.
+let _pages = null, _pagesAt = 0, _pagesRefreshing = false;
+const PAGES_TTL_MS = Number(process.env.LEADS_CACHE_TTL_MS || 60000);
+
+async function refreshPages() {
+  _pagesRefreshing = true;
+  try { _pages = await queryAll(); _pagesAt = Date.now(); return _pages; }
+  finally { _pagesRefreshing = false; }
+}
+
+// Toutes les fiches. Cache chaud → instantané ; cache périmé → renvoie le cache
+// ET rafraîchit en fond ; cache vide (démarrage) → attend la requête.
+async function allPages() {
+  if (!_pages) return refreshPages();
+  if (Date.now() - _pagesAt >= PAGES_TTL_MS && !_pagesRefreshing) {
+    refreshPages().catch((e) => console.error('⚠️ Cache fiches (refresh) :', e.message));
+  }
+  return _pages;
+}
+
+// Marque le cache périmé (après une écriture) → prochain accès = rafraîchi.
+function touchLeadsCache() { _pagesAt = 0; }
+
+// Pré-chauffe le cache au démarrage → 1re ouverture instantanée pour la setter.
+function warmupLeadsCache() {
+  refreshPages()
+    .then((p) => console.log(`🔥 Cache fiches préchauffé (${p.length} fiches).`))
+    .catch((e) => console.error('⚠️ Cache fiches (warmup) :', e.message));
+}
+
+// Fiche « appelable » : présente ou absente (≠ à venir / inconnu).
+function isPresentAbsentPage(page) {
+  const pr = sel(page.properties?.[F.presence]);
+  return pr.includes('Présent') || pr.includes('Absent');
+}
+
 // ── Lecture de propriétés ────────────────────────────────────────────────
 const t = (p) => p?.title?.[0]?.plain_text || '';
 const rt = (p) => (p?.rich_text || []).map((x) => x.plain_text).join('');
@@ -202,14 +242,7 @@ async function findPageByEmail(email) {
 // Tous les présents/absents avec téléphone exploitable (tous statuts) — le
 // frontend catégorise/filtre (À appeler / À rappeler / Booké / Perdu) et cherche.
 async function getSetterLeads() {
-  const pages = await queryAll({
-    filter: {
-      or: [
-        { property: F.presence, select: { equals: '✅ Présent' } },
-        { property: F.presence, select: { equals: '❌ Absent' } },
-      ],
-    },
-  });
+  const pages = (await allPages()).filter(isPresentAbsentPage);
   const leads = pages.map(pageToLead).filter((l) => validPhone(l.telephone));
   // Présents d'abord, puis score décroissant
   leads.sort((a, b) =>
@@ -235,6 +268,7 @@ async function updateSetterLead(pageId, body) {
   if ('objectif' in body) props[F.objectif] = wRt(body.objectif);
   if (!Object.keys(props).length) return null;
   const page = await notionFetch(`/pages/${pageId}`, 'PATCH', { properties: props });
+  touchLeadsCache();
   return {
     email: mail(page.properties?.[F.email]),
     type_webi: rt(page.properties?.[F.tagSio]).includes('IA') ? 'ia' : 'social',
@@ -252,6 +286,7 @@ async function bookSetterLead(pageId, dateRdv) {
       [F.dateResa]: wDate(dateRdv),
     },
   });
+  touchLeadsCache();
   return pageToLead(page);
 }
 
@@ -272,11 +307,12 @@ async function resetSetterLead(pageId) {
       [F.dateResa]: wDate(null),
     },
   });
+  touchLeadsCache();
   return { email: mail(page.properties?.[F.email]) };
 }
 
 async function getStats() {
-  const pages = await queryAll();
+  const pages = await allPages();
   const all = pages.map(pageToLead);
   // Stats sur la population RÉELLEMENT APPELABLE (téléphone valide) et NON
   // archivée — cohérent avec la file active affichée à la setter.
@@ -366,6 +402,7 @@ async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = n
       },
     });
   }
+  touchLeadsCache();
 }
 
 // Archive tout le lot ACTUELLEMENT actif (présents/absents non archivés) :
@@ -394,6 +431,7 @@ async function archiveActiveCohort() {
     });
     n++;
   }
+  touchLeadsCache();
   console.log(`🗄️  Archivage : ${n} fiches archivées.`);
   return n;
 }
@@ -411,6 +449,7 @@ async function archiveSetterLead(email) {
       [F.gisement]: wSel('🟢 A réservé un call'),
     },
   });
+  touchLeadsCache();
 }
 
 // Webhook Calendly : RDV pris → marquer booké. Renvoie la fiche (pour noCRM).
@@ -425,6 +464,7 @@ async function markBookedByEmail(email, dateRdv) {
       [F.dateResa]: wDate(dateRdv),
     },
   });
+  touchLeadsCache();
   return pageToLead(updated);
 }
 
@@ -440,4 +480,5 @@ module.exports = {
   upsertWebiLead,
   archiveSetterLead,
   markBookedByEmail,
+  warmupLeadsCache,
 };

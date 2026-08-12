@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { ensureSetterDatabase } = require('./services/notion');
+const { ensureSetterDatabase, warmupLeadsCache } = require('./services/notion');
 const { startScheduler } = require('./services/syncSio');
 
 const app = express();
@@ -30,6 +30,7 @@ const PORT = process.env.PORT || 3000;
     try {
       const id = await ensureSetterDatabase();
       console.log(`📋 Base « Prospects webinaire » connectée : ${id}`);
+      warmupLeadsCache(); // pré-charge les fiches → 1re ouverture instantanée
     } catch (e) {
       console.error('⚠️ Init Notion :', e.message);
       console.error('   → Vérifie que la base est partagée avec l\'intégration. La synchro réessaiera à chaque passe.');
