@@ -17,9 +17,14 @@ function transport() {
   if (!_transport) {
     _transport = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: Number(process.env.SMTP_PORT || 465),
+      secure: Number(process.env.SMTP_PORT || 465) === 465,
       auth: { user: user(), pass: pass() },
+      // Timeouts courts : si l'hébergeur bloque le SMTP sortant, on veut une
+      // erreur claire en quelques secondes, pas une requête qui pend.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
   }
   return _transport;
