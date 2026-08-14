@@ -322,10 +322,23 @@ body {
   border: 1px dashed var(--border-strong); border-radius: 10px;
 }
 .modal-sig-note { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-bottom: 7px; }
-.modal-sig-preview { font-size: 13px; line-height: 1.55; color: var(--text); border-top: 2px solid var(--lime); padding-top: 8px; }
-.modal-sig-preview .sig-brand { color: var(--lime-dark); font-weight: 700; }
-.modal-sig-preview .sig-line { font-size: 12px; color: var(--text-soft); }
-.modal-sig-preview a { color: var(--lime-dark); }
+/* Aperçu fidèle de la signature officielle : logo | barre orange | nom + icônes */
+.sig-instap { display: flex; align-items: center; gap: 16px; background: #fff; border-radius: 9px; padding: 12px 14px; }
+.sig-logo { width: 130px; max-width: 40%; height: auto; display: block; }
+.sig-right { border-left: 3px solid #EE7A1F; padding-left: 16px; }
+.sig-name { font-size: 15px; color: #111; }
+.sig-name span { color: #EE7A1F; font-weight: 700; }
+.sig-line { font-size: 10.5px; color: #8a8f84; margin: 2px 0 7px; }
+.sig-icons { display: flex; gap: 6px; }
+.sig-ic {
+  width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center;
+  justify-content: center; color: #fff !important; font-size: 11px; font-weight: 700;
+  text-decoration: none; line-height: 1;
+}
+.ic-mail { background: #E8590C; font-size: 13px; }
+.ic-fb { background: #3b5093; }
+.ic-ig { background: #C13584; }
+.ic-yt { background: #CC2B1D; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 .btn-cancel {
   padding: 9px 16px; border-radius: 9px; cursor: pointer; font-family: inherit;

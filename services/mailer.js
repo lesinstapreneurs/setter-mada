@@ -66,13 +66,34 @@ async function smtpSend(message) {
 }
 
 // Signature ajoutée à la fin de chaque email (non éditable côté setter).
+// Reproduit la signature officielle : logo | barre orange | « Sylvie des
+// instapreneurs » + icônes réseaux. HTML « email-safe » (tableaux + inline).
+const SIG_ORANGE = '#EE7A1F';
+const sigIcon = (href, bg, label, fs = 12) =>
+  `<td style="padding-right:7px"><a href="${href}" style="display:inline-block;width:26px;height:26px;` +
+  `background:${bg};border-radius:6px;text-align:center;line-height:26px;color:#ffffff;` +
+  `font-size:${fs}px;font-weight:bold;text-decoration:none;font-family:Arial,Helvetica,sans-serif">${label}</a></td>`;
+
 const SIGNATURE_HTML =
-  '<div style="margin-top:24px;padding-top:14px;border-top:2px solid #84cc16;font-family:Arial,Helvetica,sans-serif">' +
-  '<div style="font-size:15px;font-weight:bold;color:#23271c">Sylvie</div>' +
-  '<div style="font-size:13px;color:#4d7c0f;font-weight:bold">Les Instapreneurs</div>' +
-  '<div style="font-size:12px;color:#6b7160">Organisme de formation certifié Qualiopi</div>' +
-  '<div style="font-size:12px;margin-top:4px"><a href="https://les-instapreneurs.com" style="color:#4d7c0f">les-instapreneurs.com</a></div>' +
-  '</div>';
+  '<table cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;font-family:Arial,Helvetica,sans-serif">' +
+  '<tr>' +
+  '<td style="padding-right:20px;vertical-align:middle">' +
+  '<a href="https://les-instapreneurs.com" style="text-decoration:none">' +
+  '<img src="https://les-instapreneurs.com/wp-content/uploads/2022/05/logo_instapreneurs.png" ' +
+  'alt="Les Instapreneurs" width="150" style="display:block;border:0;max-width:150px"></a>' +
+  '</td>' +
+  `<td style="border-left:3px solid ${SIG_ORANGE};padding-left:20px;vertical-align:middle">` +
+  `<div style="font-size:17px;color:#111111"><span style="color:${SIG_ORANGE};font-weight:bold">Sylvie</span> des instapreneurs</div>` +
+  '<div style="font-size:11px;color:#8a8f84;margin:3px 0 9px">Organisme de formation certifié Qualiopi</div>' +
+  '<table cellpadding="0" cellspacing="0" border="0"><tr>' +
+  sigIcon('mailto:contact@instapreneurpro.fr', '#E8590C', '✉', 14) +
+  sigIcon('https://www.facebook.com/groups/devenir.instapreneur', '#3b5093', 'fb') +
+  sigIcon('https://www.instagram.com/lesinstapreneurs', '#C13584', 'ig') +
+  sigIcon('https://www.youtube.com/c/lesinstapreneurs', '#CC2B1D', 'yt') +
+  '</tr></table>' +
+  '</td>' +
+  '</tr>' +
+  '</table>';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -119,7 +140,7 @@ async function sendAsSylvie({ to, subject, body }) {
   const message = {
     to: dest,
     subject: String(subject).trim(),
-    text: `${body}\n\n--\nSylvie\nLes Instapreneurs — Organisme de formation certifié Qualiopi\nhttps://les-instapreneurs.com`,
+    text: `${body}\n\n--\nSylvie des instapreneurs\nOrganisme de formation certifié Qualiopi\nhttps://les-instapreneurs.com · Instagram : @lesinstapreneurs`,
     html: bodyToHtml(body) + SIGNATURE_HTML,
   };
 
