@@ -15,7 +15,13 @@ try { dns.setDefaultResultOrder('ipv4first'); } catch { /* vieux Node */ }
 const user = () => (process.env.GMAIL_USER || '').trim();
 const pass = () => (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, ''); // Google affiche le code avec des espaces
 
-const isReady = () => Boolean(user() && pass());
+// Relais Apps Script (HTTPS) — utilisé en priorité : Railway bloque le SMTP
+// sortant, donc on passe par un mini web-app Google Apps Script déployé sur le
+// compte Gmail des Instapreneurs (GmailApp.sendEmail = part de la vraie boîte).
+const webappUrl = () => (process.env.MAIL_WEBAPP_URL || '').trim();
+const webappSecret = () => (process.env.MAIL_WEBAPP_SECRET || '').trim();
+
+const isReady = () => Boolean(webappUrl() && webappSecret()) || Boolean(user() && pass());
 
 async function makeTransport(port) {
   // Résolution IPv4 explicite : ipv4first ne suffit pas partout, on se
@@ -79,24 +85,45 @@ function bodyToHtml(text) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#23271c;line-height:1.6">${withLinks.replace(/\n/g, '<br>')}</div>`;
 }
 
+// Envoi via le relais Apps Script (HTTPS port 443 — jamais bloqué).
+// Apps Script répond par une redirection 302 vers googleusercontent → follow.
+async function webappSend({ to, subject, text, html }) {
+  const res = await fetch(webappUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: webappSecret(), to, subject, text, html }),
+    redirect: 'follow',
+  });
+  const raw = await res.text();
+  let out = {};
+  try { out = JSON.parse(raw); } catch { /* réponse non-JSON */ }
+  if (!res.ok || out.error || !out.success) {
+    throw new Error(out.error || `Relais Gmail → HTTP ${res.status} : ${raw.slice(0, 120)}`);
+  }
+  return { messageId: out.id || 'apps-script' };
+}
+
 /**
  * Envoie un email signé Sylvie. `body` = texte tel que validé par la setter
  * (la signature est ajoutée automatiquement, ne pas l'inclure).
  */
 async function sendAsSylvie({ to, subject, body }) {
-  if (!isReady()) throw new Error('Email non configuré (GMAIL_USER / GMAIL_APP_PASSWORD manquants sur Railway)');
+  if (!isReady()) throw new Error('Email non configuré (MAIL_WEBAPP_URL / MAIL_WEBAPP_SECRET manquants sur Railway)');
   const dest = String(to || '').trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dest)) throw new Error(`Destinataire invalide : « ${dest} »`);
   if (!String(subject || '').trim()) throw new Error('Objet manquant');
   if (!String(body || '').trim()) throw new Error('Message vide');
 
-  const info = await smtpSend({
-    from: { name: 'Sylvie — Les Instapreneurs', address: user() },
+  const message = {
     to: dest,
     subject: String(subject).trim(),
     text: `${body}\n\n--\nSylvie\nLes Instapreneurs — Organisme de formation certifié Qualiopi\nhttps://les-instapreneurs.com`,
     html: bodyToHtml(body) + SIGNATURE_HTML,
-  });
+  };
+
+  const info = webappUrl() && webappSecret()
+    ? await webappSend(message)
+    : await smtpSend({ ...message, from: { name: 'Sylvie — Les Instapreneurs', address: user() } });
   console.log(`✉️  Email envoyé à ${dest} (${info.messageId})`);
   return { messageId: info.messageId };
 }
