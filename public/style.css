@@ -287,6 +287,59 @@ body {
 }
 .res-copy:hover { border-color: var(--lime-dark); }
 .res-muted { font-size: 12px; color: var(--text-faint); margin-top: 6px; font-style: italic; }
+.btn-mail-replay {
+  margin-top: 9px; padding: 8px 14px; border-radius: 9px; cursor: pointer;
+  background: var(--lime-bg); border: 1px solid var(--lime-border); color: var(--lime-deep);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; transition: all .15s;
+}
+.btn-mail-replay:hover { background: #ecf7d8; border-color: var(--lime-dark); }
+
+/* ── Modale d'envoi d'email (validation avant envoi) ──────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(35, 39, 28, .45);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: var(--panel); border-radius: 15px; box-shadow: 0 10px 40px rgba(40, 48, 22, .25);
+  width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; padding: 20px 22px;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-sub { font-size: 12.5px; color: var(--text-soft); margin: 4px 0 14px; }
+.modal-lbl {
+  display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-soft); margin: 11px 0 4px;
+}
+.modal-box textarea {
+  width: 100%; background: var(--panel); border: 1px solid var(--border-strong);
+  border-radius: 9px; padding: 10px 12px; font-size: 13px; color: var(--text);
+  font-family: inherit; line-height: 1.55; resize: vertical; outline: none;
+}
+.modal-box textarea:focus { border-color: var(--lime-dark); }
+.modal-signature {
+  margin-top: 13px; padding: 11px 13px; background: var(--panel-soft);
+  border: 1px dashed var(--border-strong); border-radius: 10px;
+}
+.modal-sig-note { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-bottom: 7px; }
+.modal-sig-preview { font-size: 13px; line-height: 1.55; color: var(--text); border-top: 2px solid var(--lime); padding-top: 8px; }
+.modal-sig-preview .sig-brand { color: var(--lime-dark); font-weight: 700; }
+.modal-sig-preview .sig-line { font-size: 12px; color: var(--text-soft); }
+.modal-sig-preview a { color: var(--lime-dark); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.btn-cancel {
+  padding: 9px 16px; border-radius: 9px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 600; background: var(--panel); color: var(--text-soft);
+  border: 1px solid var(--border-strong); transition: all .15s;
+}
+.btn-cancel:hover { border-color: var(--text-faint); color: var(--text); }
+.btn-send {
+  padding: 9px 18px; border-radius: 9px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; background: var(--lime-dark); color: #fff;
+  border: 1px solid var(--lime-deep); transition: all .15s;
+}
+.btn-send:hover { background: var(--lime-deep); }
+.btn-send:disabled { opacity: .6; cursor: wait; }
 
 .script-body { padding: 20px 24px 30px; max-width: 860px; }
 

@@ -331,6 +331,38 @@
   </div>
 </div>
 
+<!-- Fenêtre de validation avant envoi d'email (replay) — tout est éditable -->
+<div class="modal-overlay hidden" id="emailModal">
+  <div class="modal-box">
+    <div class="modal-title">✉️ Envoyer le replay par email</div>
+    <div class="modal-sub">Vérifie et ajuste si besoin — rien ne part sans ton clic sur « Envoyer ».</div>
+
+    <label class="modal-lbl" for="emailTo">Destinataire</label>
+    <input type="email" id="emailTo" class="text-input" placeholder="adresse@email.com">
+
+    <label class="modal-lbl" for="emailSubject">Objet</label>
+    <input type="text" id="emailSubject" class="text-input">
+
+    <label class="modal-lbl" for="emailBody">Message</label>
+    <textarea id="emailBody" rows="9"></textarea>
+
+    <div class="modal-signature">
+      <div class="modal-sig-note">Signature ajoutée automatiquement :</div>
+      <div class="modal-sig-preview">
+        <strong>Sylvie</strong><br>
+        <span class="sig-brand">Les Instapreneurs</span><br>
+        <span class="sig-line">Organisme de formation certifié Qualiopi</span><br>
+        <span class="sig-line"><a href="https://les-instapreneurs.com" target="_blank" rel="noopener">les-instapreneurs.com</a></span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEmailModal()">Annuler</button>
+      <button class="btn-send" id="emailSendBtn" onclick="sendReplayEmailNow()">✉️ Envoyer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>

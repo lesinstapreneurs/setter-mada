@@ -6,6 +6,7 @@ const notion = require('../services/notion');
 const systemeio = require('../services/systemeio');
 const onoff = require('../services/onoff');
 const nocrm = require('../services/nocrm');
+const mailer = require('../services/mailer');
 const { syncOnce } = require('../services/syncSio');
 const { SIO_TAG } = require('../config');
 
@@ -157,6 +158,22 @@ router.post('/archive', async (req, res) => {
     res.json({ success: true, archived: n });
   } catch (e) {
     console.error('POST /api/archive :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/email/send — envoie un email signé Sylvie (validé/édité par la
+// setter dans la fenêtre de confirmation). 503 si Gmail non configuré.
+router.post('/email/send', async (req, res) => {
+  if (!mailer.isReady()) {
+    return res.status(503).json({ error: 'Email non configuré — ajoute GMAIL_USER et GMAIL_APP_PASSWORD sur Railway.' });
+  }
+  try {
+    const { to, subject, body } = req.body || {};
+    const out = await mailer.sendAsSylvie({ to, subject, body });
+    res.json({ success: true, ...out });
+  } catch (e) {
+    console.error('POST /api/email/send :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

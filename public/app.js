@@ -214,7 +214,12 @@ async function api(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
-  if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
+  if (!res.ok) {
+    // Remonte le message d'erreur du serveur s'il y en a un (plus parlant)
+    let msg = `API ${path} → ${res.status}`;
+    try { const j = await res.json(); if (j && j.error) msg = j.error; } catch { /* corps non-JSON */ }
+    throw new Error(msg);
+  }
   return res.json();
 }
 
@@ -512,9 +517,86 @@ function renderRessources(lead) {
   const L = LINKS[webiTypeOf(lead)];
   const rows = [`<div class="res-title">🔗 Ressources — ${L.label}</div>`];
   rows.push(resLink('📝 Réinscription', L.inscription));
-  if (L.replay) rows.push(resLink('▶️ Replay', L.replay));
-  else rows.push('<div class="res-muted">▶️ Replay : à venir</div>');
+  if (L.replay) {
+    rows.push(resLink('▶️ Replay', L.replay));
+    // Envoi du replay par email (fenêtre de validation avant envoi)
+    if (lead.email) {
+      rows.push(
+        `<button class="btn-mail-replay" onclick="openEmailModal()">` +
+        `✉️ Envoyer le replay par email à ${esc(lead.prenom || lead.nom || 'ce prospect')}</button>`
+      );
+    }
+  } else {
+    rows.push('<div class="res-muted">▶️ Replay : à venir</div>');
+  }
   box.innerHTML = rows.join('');
+}
+
+/* ── Email replay : fenêtre de validation puis envoi (signé Sylvie) ────── */
+function emailTemplateFor(lead) {
+  const type = webiTypeOf(lead);
+  const L = LINKS[type];
+  const prenom = (lead.prenom || (lead.nom || '').trim().split(/\s+/)[0] || '').trim();
+  const sujet = type === 'ia'
+    ? 'Votre replay — conférence sur l\'IA 🎬'
+    : 'Votre replay — conférence Instagram 🎬';
+  const theme = type === 'ia'
+    ? 'notre conférence gratuite sur l\'intelligence artificielle'
+    : 'notre conférence gratuite sur Instagram';
+  const corps =
+`Bonjour${prenom ? ' ' + prenom : ''},
+
+Suite à notre échange, voici le lien pour (re)voir ${theme} :
+${L.replay}
+
+Bon visionnage ! Et si vous avez la moindre question, répondez simplement à cet email.
+
+À très vite,`;
+  return { to: lead.email || '', subject: sujet, body: corps };
+}
+
+function openEmailModal() {
+  if (!currentLead) return;
+  const t = emailTemplateFor(currentLead);
+  document.getElementById('emailTo').value = t.to;
+  document.getElementById('emailSubject').value = t.subject;
+  document.getElementById('emailBody').value = t.body;
+  document.getElementById('emailModal').classList.remove('hidden');
+}
+
+function closeEmailModal() {
+  document.getElementById('emailModal').classList.add('hidden');
+}
+
+async function sendReplayEmailNow() {
+  const to = document.getElementById('emailTo').value.trim();
+  const subject = document.getElementById('emailSubject').value.trim();
+  const body = document.getElementById('emailBody').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { showToast('⚠️ Adresse email invalide'); return; }
+  if (!subject) { showToast('⚠️ L\'objet est vide'); return; }
+  if (!body.trim()) { showToast('⚠️ Le message est vide'); return; }
+  if (demoMode) { closeEmailModal(); showToast('Mode démo — email non envoyé'); return; }
+
+  const btn = document.getElementById('emailSendBtn');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try {
+    await api('/api/email/send', { method: 'POST', body: JSON.stringify({ to, subject, body }) });
+    closeEmailModal();
+    showToast('✉️ Email envoyé à ' + to);
+    // Trace l'envoi dans les notes de la fiche
+    if (currentLead) {
+      const d = new Date();
+      const stamp = `📧 Replay envoyé le ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} à ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const notesEl = document.getElementById('notesLibres');
+      notesEl.value = (notesEl.value ? notesEl.value + '\n' : '') + stamp;
+      scheduleAutosave();
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ Échec de l\'envoi : ' + (e.message || 'erreur inconnue'));
+  } finally {
+    btn.disabled = false; btn.textContent = '✉️ Envoyer';
+  }
 }
 
 function resLink(label, url) {
