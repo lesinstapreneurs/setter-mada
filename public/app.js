@@ -17,7 +17,7 @@ const LINKS = {
   ia: {
     label: '🤖 IA', jour: 'mercredi',
     inscription: 'https://les-instapreneurs.com/optin-conference-ia/',
-    replay: '', // replay IA : à venir (URL fournie plus tard)
+    replay: 'https://les-instapreneurs.com/replay-conference-ia/',
   },
 };
 function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'social'; }
