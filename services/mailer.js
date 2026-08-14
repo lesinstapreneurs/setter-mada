@@ -17,13 +17,22 @@ const pass = () => (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, ''); /
 
 const isReady = () => Boolean(user() && pass());
 
-function makeTransport(port) {
+async function makeTransport(port) {
+  // Résolution IPv4 explicite : ipv4first ne suffit pas partout, on se
+  // connecte directement à l'adresse A de smtp.gmail.com. Le certificat TLS
+  // reste validé sur le nom via tls.servername (SNI).
+  let host = 'smtp.gmail.com';
+  try {
+    const ips = await dns.promises.resolve4('smtp.gmail.com');
+    if (ips.length) host = ips[0];
+  } catch { /* on retombe sur le nom d'hôte */ }
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host,
     port,
     secure: port === 465,            // 465 = TLS direct ; 587 = STARTTLS
     requireTLS: true,
     auth: { user: user(), pass: pass() },
+    tls: { servername: 'smtp.gmail.com' },
     // Timeouts courts : si l'hébergeur bloque le SMTP sortant, on veut une
     // erreur claire en quelques secondes, pas une requête qui pend.
     connectionTimeout: 10_000,
@@ -39,7 +48,7 @@ async function smtpSend(message) {
   let lastErr;
   for (const port of ports) {
     try {
-      return await makeTransport(port).sendMail(message);
+      return await (await makeTransport(port)).sendMail(message);
     } catch (e) {
       lastErr = e;
       const connIssue = /timeout|ECONN|ETIMEDOUT|ESOCKET|EDNS/i.test(String(e.code || e.message));
