@@ -6,28 +6,48 @@
 // Config Railway : GMAIL_USER, GMAIL_APP_PASSWORD.
 // ─────────────────────────────────────────────────────────────────────────
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Railway (et d'autres hébergeurs) n'ont pas d'IPv6 sortant : si Node résout
+// smtp.gmail.com en IPv6 d'abord, la connexion pend → timeout. On force l'IPv4.
+try { dns.setDefaultResultOrder('ipv4first'); } catch { /* vieux Node */ }
 
 const user = () => (process.env.GMAIL_USER || '').trim();
 const pass = () => (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, ''); // Google affiche le code avec des espaces
 
 const isReady = () => Boolean(user() && pass());
 
-let _transport = null;
-function transport() {
-  if (!_transport) {
-    _transport = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT || 465),
-      secure: Number(process.env.SMTP_PORT || 465) === 465,
-      auth: { user: user(), pass: pass() },
-      // Timeouts courts : si l'hébergeur bloque le SMTP sortant, on veut une
-      // erreur claire en quelques secondes, pas une requête qui pend.
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 20_000,
-    });
+function makeTransport(port) {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port,
+    secure: port === 465,            // 465 = TLS direct ; 587 = STARTTLS
+    requireTLS: true,
+    auth: { user: user(), pass: pass() },
+    // Timeouts courts : si l'hébergeur bloque le SMTP sortant, on veut une
+    // erreur claire en quelques secondes, pas une requête qui pend.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  });
+}
+
+// Envoie via 465, et retente automatiquement en 587 si la connexion échoue
+// (certains réseaux ne laissent passer qu'un des deux ports).
+async function smtpSend(message) {
+  const ports = process.env.SMTP_PORT ? [Number(process.env.SMTP_PORT)] : [465, 587];
+  let lastErr;
+  for (const port of ports) {
+    try {
+      return await makeTransport(port).sendMail(message);
+    } catch (e) {
+      lastErr = e;
+      const connIssue = /timeout|ECONN|ETIMEDOUT|ESOCKET|EDNS/i.test(String(e.code || e.message));
+      console.error(`⚠️ SMTP port ${port} : ${e.message}`);
+      if (!connIssue) break; // erreur d'authentification & co → inutile d'essayer l'autre port
+    }
   }
-  return _transport;
+  throw lastErr;
 }
 
 // Signature ajoutée à la fin de chaque email (non éditable côté setter).
@@ -61,7 +81,7 @@ async function sendAsSylvie({ to, subject, body }) {
   if (!String(subject || '').trim()) throw new Error('Objet manquant');
   if (!String(body || '').trim()) throw new Error('Message vide');
 
-  const info = await transport().sendMail({
+  const info = await smtpSend({
     from: { name: 'Sylvie — Les Instapreneurs', address: user() },
     to: dest,
     subject: String(subject).trim(),
