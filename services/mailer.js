@@ -85,8 +85,9 @@ function bodyToHtml(text) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#23271c;line-height:1.6">${withLinks.replace(/\n/g, '<br>')}</div>`;
 }
 
-// Envoi via le relais Apps Script (HTTPS port 443 — jamais bloqué).
-// Apps Script répond par une redirection 302 vers googleusercontent → follow.
+// Envoi via un relais HTTPS (port 443 — jamais bloqué) : webhook Make branché
+// sur le module Gmail des Instapreneurs (ou web-app Apps Script équivalente).
+// Make répond « Accepted » en texte brut ; Apps Script répond du JSON.
 async function webappSend({ to, subject, text, html }) {
   const res = await fetch(webappUrl(), {
     method: 'POST',
@@ -96,11 +97,12 @@ async function webappSend({ to, subject, text, html }) {
   });
   const raw = await res.text();
   let out = {};
-  try { out = JSON.parse(raw); } catch { /* réponse non-JSON */ }
-  if (!res.ok || out.error || !out.success) {
+  try { out = JSON.parse(raw); } catch { /* réponse non-JSON (Make → « Accepted ») */ }
+  const okText = /^(accepted|ok|queued)?$/i.test(raw.trim()) || /accepted/i.test(raw.slice(0, 40));
+  if (!res.ok || out.error || (!out.success && !okText)) {
     throw new Error(out.error || `Relais Gmail → HTTP ${res.status} : ${raw.slice(0, 120)}`);
   }
-  return { messageId: out.id || 'apps-script' };
+  return { messageId: out.id || 'relais-gmail' };
 }
 
 /**
