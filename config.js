@@ -23,8 +23,12 @@ const TAGS_ABSENT_WEBI = [
   // Ajouter ici les futurs tags "absent webi"
 ];
 
+// Un tag de réservation PAR TUNNEL : System.io en pose un différent selon la
+// conférence d'origine. N'en déclarer qu'un revient à laisser dans la file
+// d'appel tous ceux de l'autre tunnel qui ont pourtant déjà leur rendez-vous.
 const TAGS_RESA_CALL = [
-  { name: 'Résa call', id: 1693176 },
+  { name: 'Résa call', id: 1693176, type: 'social' },
+  { name: 'Résa call IA', id: 2118439, type: 'ia' },
 ];
 
 // ── Tags POSÉS dans System.io par les actions de la setter ────────────────
