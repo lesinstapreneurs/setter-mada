@@ -297,6 +297,10 @@ async function resetSetterLead(pageId) {
     properties: {
       [F.statut]: wSel(ST_APPELER),
       [F.aReserve]: wCheck(false),
+      // Sans ça, le Gisement restait à « 🟢 A réservé un call » et la fiche
+      // était relue comme réservée : le bouton « réinitialiser » ne la
+      // ramenait jamais dans la file.
+      [F.gisement]: wSel(''),
       [F.notes]: wRt(''),
       [F.manques]: wRt(''),
       [F.positifs]: wRt(''),

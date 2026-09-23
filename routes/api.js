@@ -8,7 +8,7 @@ const onoff = require('../services/onoff');
 const nocrm = require('../services/nocrm');
 const mailer = require('../services/mailer');
 const { syncOnce } = require('../services/syncSio');
-const { SIO_TAG } = require('../config');
+const { SIO_TAG, TAGS_RESA_CALL } = require('../config');
 
 const router = express.Router();
 
@@ -88,7 +88,10 @@ router.post('/leads/:id/reset', async (req, res) => {
     res.json({ success: true });
     // Retire aussi les tags posés par la setter dans System.io (best-effort)
     if (out?.email && systemeio.isReady()) {
-      [SIO_TAG.PAS_INTERESSE, SIO_TAG.INJOIGNABLE, SIO_TAG.REINSCRIT, SIO_TAG.RESA_CALL].forEach(
+      // Les deux tags de réservation, pas seulement celui du tunnel lundi :
+      // sinon la synchro suivante ré-archive la fiche qu'on vient de rouvrir.
+      [SIO_TAG.PAS_INTERESSE, SIO_TAG.INJOIGNABLE, SIO_TAG.REINSCRIT,
+       ...TAGS_RESA_CALL.map((t) => t.id)].forEach(
         (tagId) => systemeio.removeTag(out.email, tagId).catch((e) =>
           console.error(`⚠️ System.io reset tag ${tagId} : ${e.message}`))
       );
