@@ -376,8 +376,13 @@ async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = n
   const presence = kind === 'present' ? '✅ Présent' : '❌ Absent';
   const existing = await findPageByEmail(email);
   if (existing) {
-    if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return; // garde le RDV booké
-    const props = { [F.presence]: wSel(presence) };
+    if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return false; // garde le RDV booké
+    const props = {};
+    // Seulement si la présence a VRAIMENT changé. Réécrire à l'identique
+    // coûtait 3 139 écritures Notion par passe, deux fois par jour, et faisait
+    // repasser toute la base pour « modifiée » — donc un rafraîchissement
+    // complet du cache derrière chaque synchro.
+    if (sel(existing.properties?.[F.presence]) !== presence) props[F.presence] = wSel(presence);
     // Renseigne le webinaire d'origine s'il n'est pas encore posé (ne réécrit
     // jamais une valeur existante → n'écrase pas ce que Make aurait mis).
     if (!rt(existing.properties?.[F.tagSio])) props[F.tagSio] = wRt(webiMark(webiType));
@@ -388,6 +393,8 @@ async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = n
       props[F.statut] = wSel(ST_APPELER);
       props[F.aReserve] = wCheck(false);
     }
+    // Rien à changer : on ne touche pas à la page.
+    if (!Object.keys(props).length) return false;
     await notionFetch(`/pages/${existing.id}`, 'PATCH', { properties: props });
   } else {
     const nom = [sioContact.first_name, sioContact.last_name].filter(Boolean).join(' ').trim() || email;
@@ -407,6 +414,7 @@ async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = n
     });
   }
   touchLeadsCache();
+  return true;
 }
 
 // Archive tout le lot ACTUELLEMENT actif (présents/absents non archivés) :

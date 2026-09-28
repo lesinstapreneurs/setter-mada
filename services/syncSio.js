@@ -120,20 +120,21 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
   }
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  let okUpserts = 0, okArchives = 0, errors = 0;
+  let okUpserts = 0, inchangees = 0, okArchives = 0, errors = 0;
   for (const a of actions) {
     try {
       if (a.kind === 'resa') { await notion.archiveSetterLead(a.email); okArchives++; }
-      else { await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate, a.webiType); okUpserts++; }
+      else if (await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate, a.webiType)) okUpserts++;
+      else inchangees++;
     } catch (e) {
       errors++;
       console.error(`⚠️ Sync ${a.kind} ${a.email} : ${e.message}`);
     }
     await sleep(120); // throttle léger : ménage l'API Notion, garde le frontend réactif
   }
-  summary.applied = { upserts: okUpserts, archives: okArchives, errors };
+  summary.applied = { upserts: okUpserts, inchangees, archives: okArchives, errors };
   console.log(
-    `🔄 Sync System.io→Notion : ${okUpserts} upserts, ${okArchives} archives` +
+    `🔄 Sync System.io→Notion : ${okUpserts} écrites, ${inchangees} inchangées, ${okArchives} archives` +
     (errors ? `, ${errors} erreurs` : '') + ` (depuis ${registeredAfter.slice(0, 10)})`
   );
   return summary;
