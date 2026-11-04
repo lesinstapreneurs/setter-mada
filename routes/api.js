@@ -57,7 +57,9 @@ router.patch('/leads/:id', async (req, res) => {
     // « Réinscrit webi » (= automation du webinaire LUNDI). Pour l'IA, la setter
     // envoie le lien d'inscription IA à la main (affiché dans la fiche).
     const skipReinscritIA = tagId === SIO_TAG.REINSCRIT && out?.type_webi === 'ia';
-    if (tagId && out?.email && !skipReinscritIA) tagSioAsync(out.email, tagId, body.statut);
+    // `skip_sio` : la setteuse a changé le statut mais n'a pas encore décidé
+    // de réinscrire. Rien ne part tant qu'elle ne l'a pas demandé explicitement.
+    if (tagId && out?.email && !skipReinscritIA && !body.skip_sio) tagSioAsync(out.email, tagId, body.statut);
   } catch (e) {
     console.error('PATCH /api/leads :', e.message);
     res.status(500).json({ error: e.message });
@@ -70,6 +72,9 @@ router.post('/leads/:id/book', async (req, res) => {
     const dateRdv = req.body?.date_rdv;
     if (!dateRdv) return res.status(400).json({ error: 'date_rdv manquante' });
     const out = await notion.bookSetterLead(req.params.id, dateRdv);
+    // Le résumé d'appel rédigé par la setteuse : c'est ce que Jordan lira
+    // dans noCRM, son seul outil de travail.
+    if (out && req.body?.resume) out.resume = String(req.body.resume);
     res.json({ success: true });
     // La setter a booké → tag « Résa call » dans System.io (best-effort)
     if (out?.email) tagSioAsync(out.email, SIO_TAG.RESA_CALL, 'Résa call');

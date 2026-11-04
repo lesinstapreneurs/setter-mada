@@ -29,19 +29,28 @@ function buildDescription(lead, dateRdv) {
   }
   if (lead.telephone) L.push(`📞 ${lead.telephone}`);
   if (lead.email) L.push(`📧 ${lead.email}`);
+
+  // Le résumé rédigé pendant l'appel : c'est la vraie valeur pour le closer,
+  // il évite de refaire toute la conversation. S'il existe, il prime.
+  if (lead.resume) {
+    L.push('');
+    L.push('— Ce que Sylvie a recueilli —');
+    L.push(lead.resume);
+    return L.join('\n');
+  }
+
+  // Repli pour les fiches anciennes, sans résumé d'appel.
   if (lead.webi) {
     const wname = lead.type_webi === 'ia' ? 'IA' : 'Réseaux sociaux';
     L.push(`Webinaire : ${wname} — ${lead.webi === 'Présent' ? 'présent' : 'absent'}`);
   }
   const qual = [];
-  if (lead.objectif) qual.push(`Raisons d'inscription : ${lead.objectif}`);
-  if (lead.situation_pro) qual.push(`Situation : ${lead.situation_pro}`);
+  if (lead.objectif) qual.push(`Ce qu'il cherche à régler : ${lead.objectif}`);
+  if (lead.situation_pro) qual.push(`Activité / statut : ${lead.situation_pro}`);
   if (lead.niveau_ig) qual.push(`Niveau Instagram : ${lead.niveau_ig}`);
-  if (lead.positifs) qual.push(`Ce qui lui a plu : ${lead.positifs}`);
-  if (lead.manques) qual.push(`Ce qui a manqué : ${lead.manques}`);
-  if (lead.objection) qual.push(`Objection : ${lead.objection}`);
+  if (lead.objection) qual.push(`Réserves : ${lead.objection}`);
   if (qual.length) { L.push(''); L.push('— Qualification —'); L.push(...qual); }
-  if (lead.notes) { L.push(''); L.push('📝 Notes setter :'); L.push(lead.notes); }
+  if (lead.notes) { L.push(''); L.push('📝 Notes :'); L.push(lead.notes); }
   return L.join('\n');
 }
 

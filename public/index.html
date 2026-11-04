@@ -126,14 +126,15 @@
         <!-- ÉTAPE 0 — CONTACT -->
         <div class="step active-step" id="step0">
           <div class="step-header">
-            <div class="step-num">Étape 0 — Le prospect a-t-il décroché ?</div>
-            <div class="q-label">A répondu ?</div>
+            <div class="step-num">1 — Le prospect a-t-il décroché ?</div>
             <div class="chips" id="chipsRepondu"></div>
             <div class="step-divider"></div>
+            <p class="step-intro">On appelle <b>deux fois de suite</b>. Si la deuxième
+              ne donne rien : <b>message vocal + SMS</b>.</p>
             <div class="q-label">Nombre de tentatives</div>
             <div class="score-row" id="tentativesRow"></div>
             <div class="sms-block hidden" id="smsBlock">
-              <div class="sms-title">📩 Pas de réponse — SMS à envoyer</div>
+              <div class="sms-title">📩 Deuxième appel sans réponse — message vocal <em>et</em> SMS</div>
               <div class="sms-text" id="speechSms"></div>
               <button class="btn-copy" onclick="copySms()">📋 Copier le SMS</button>
               <button class="btn-injoignable" onclick="markInjoignable()">🚫 Injoignable — classer &amp; taguer dans System.io</button>
@@ -141,133 +142,157 @@
           </div>
         </div>
 
-        <!-- ÉTAPE 1 — OUVERTURE -->
+        <!-- ÉTAPE 1 — OUVERTURE + OÙ IL EN EST -->
         <div class="step hidden" id="step1">
           <div class="step-header">
-            <div class="step-num">Étape 1 — Ouverture</div>
+            <div class="step-num">2 — Ouverture</div>
             <div class="speech"><p id="speechOuverture"></p></div>
-            <div class="q-label">A assisté à la conférence ?</div>
-            <div class="chips" id="chipsVuWebi"></div>
-          </div>
-        </div>
-
-        <!-- ÉTAPE 2A — ABSENT : RÉINSCRIRE OU CALL -->
-        <div class="step hidden" id="step2non">
-          <div class="step-header">
-            <div class="step-num">Branche absent — Réinscrire ou booker un call</div>
-            <div class="speech"><p id="speechAbsent"></p></div>
-            <div class="q-label">Que préfère le prospect ?</div>
-            <div class="chips" id="chipsReinscription"></div>
-            <!-- Rempli dynamiquement par fillReinscritBlock() selon le webinaire (IA / RS) -->
-            <div class="reinscrit-block" id="reinscritBlock"></div>
-            <div class="booking-section hidden" id="bookingSectionAbs">
-              <div class="booking-title">📅 Réserver l'appel avec l'expert</div>
-              <div class="rdv-inputs">
-                <div class="field-g">
-                  <span class="field-lbl">Date</span>
-                  <input type="date" id="rdvDateAbs">
-                </div>
-                <div class="field-g">
-                  <span class="field-lbl">Heure</span>
-                  <input type="time" id="rdvTimeAbs">
-                </div>
-              </div>
-              <button class="btn-calendly" onclick="openCalendly()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Ouvrir Calendly
-              </button>
-              <button class="btn-confirm" onclick="confirmerRDV('Abs')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Confirmer le RDV — lead gagné
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ÉTAPE 2B — PRÉSENT : RESSENTI -->
-        <div class="step hidden" id="step2oui">
-          <div class="step-header">
-            <div class="step-num">Étape 2 — Son ressenti sur la conférence</div>
-
-            <!-- Q1 : ce qui lui a plu → réponses positives juste en dessous -->
-            <div class="speech"><p id="speechRessenti"></p></div>
-            <div class="q-label">Ce qui lui a plu / convaincu·e <span class="hint">(plusieurs choix possibles)</span></div>
-            <div class="chips" id="chipsPositifs"></div>
-
+            <div class="hint-line" id="hintOuverture"></div>
             <div class="step-divider"></div>
-
-            <!-- Q2 : ce qui lui a manqué → réponses « manques » juste en dessous -->
-            <div class="speech"><p id="speechManques"></p></div>
-            <div class="q-label">Ce qui lui a manqué <span class="hint">(plusieurs choix possibles)</span></div>
-            <div class="chips" id="chipsManques"></div>
+            <div class="speech second"><p id="speechVu"></p></div>
+            <div class="q-label">Ce qu'il a réellement vu <span class="hint">(s'il ne sait plus, laisser « ne sait plus »)</span></div>
+            <div class="chips" id="chipsVu"></div>
           </div>
         </div>
 
-        <!-- ÉTAPE 3 — RAISONS D'INSCRIPTION -->
+        <!-- ÉTAPE 2 — COMPRENDRE -->
+        <div class="step hidden" id="step2">
+          <div class="step-header">
+            <div class="step-num">3 — Comprendre sa situation</div>
+
+            <div class="speech"><p id="speechInteret"></p></div>
+            <p class="mini-note">Enchaînez directement sur ces deux pistes : la personne
+              se reconnaît dans l'une ou l'autre, et vous obtenez une vraie réponse.</p>
+            <div class="relances" id="propositionsList"></div>
+            <div class="speech second"><p id="speechDouleurs"></p></div>
+            <div class="relances" id="relancesInteret"></div>
+
+            <div class="q-label">Son activité <span class="hint">(ses mots)</span></div>
+            <input type="text" id="qActivite" class="text-input" placeholder="graphiste indépendante, boulangerie, association vélo…">
+
+            <div class="q-label">Statut professionnel</div>
+            <div class="chips" id="chipsStatut"></div>
+
+            <div class="q-label">Ce qu'il cherche à régler <span class="hint">(ses mots, pas les nôtres)</span></div>
+            <textarea id="qBesoin" rows="2" placeholder="« je n'arrive pas à trouver des clients », « je sais pas faire de vidéo »…"></textarea>
+            <div class="relances" id="relancesBesoin"></div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 3 — INTENTION -->
         <div class="step hidden" id="step3">
           <div class="step-header">
-            <div class="step-num">Étape 3 — Ses raisons d'inscription</div>
-            <div class="speech"><p id="speechProfil"></p></div>
+            <div class="step-num">4 — Est-ce que la formation correspond ?</div>
+            <div class="speech"><p id="speechIntention"></p></div>
+            <div class="couverture-warn hidden" id="couvertureWarn"></div>
+            <div class="q-label">Où il en est</div>
+            <div class="chips" id="chipsIntention"></div>
+            <div class="relances" id="relancesHesitation"></div>
 
-            <div class="q-label">Pour quelles raisons s'est-il·elle inscrit·e ? <span class="hint">(plusieurs choix possibles)</span></div>
-            <div class="chips" id="chipsObjectifs"></div>
-            <input type="text" id="objectifAutre" class="text-input" placeholder="Autre raison — à préciser…">
+            <div class="step-divider"></div>
+            <div class="q-label">Quand il aimerait avancer <span class="hint">(approximatif suffit)</span></div>
+            <div class="chips" id="chipsEcheance"></div>
+
+            <div class="q-label">Qui décide <span class="hint">(seulement si ce n'est pas lui seul)</span></div>
+            <div class="chips" id="chipsDecision"></div>
           </div>
         </div>
 
-        <!-- ÉTAPE 4 — RDV AVEC L'EXPERT -->
-        <div class="step hidden" id="step5">
+        <!-- ÉTAPE 4 — CE RENDEZ-VOUS A-T-IL DU SENS ? -->
+        <div class="step hidden" id="step4">
           <div class="step-header">
-            <div class="step-num">Étape 4 — Proposer l'appel avec l'expert</div>
-            <div class="speech"><p id="speechRdv"></p></div>
+            <div class="step-num">5 — Ce rendez-vous a-t-il du sens ?</div>
+            <p class="step-intro">Vous ne vendez pas. Vous décidez si Jordan a
+              quelque chose à apporter à cette personne — et vous avez le droit de dire non.</p>
 
-            <div class="q-label">Issue de l'appel</div>
-            <div class="chips" id="chipsStatutAppel"></div>
+            <div class="signaux" id="signauxList"></div>
 
-            <div class="step-divider"></div>
-            <div class="q-label">Financement détecté <span class="hint">(optionnel — pour tracer)</span></div>
+            <div class="q-label">Votre jugement</div>
+            <div class="chips" id="chipsCiblage"></div>
+
+            <details class="prix-fold">
+              <summary>S'il doute du sérieux de la formation</summary>
+              <div class="speech"><p id="speechRassurance"></p></div>
+              <div class="preuves" id="rassuranceList"></div>
+            </details>
+
+            <details class="prix-fold">
+              <summary>S'il vous demande le prix</summary>
+              <div class="speech"><p id="speechPrixSiDemande"></p></div>
+            </details>
+
+            <div class="q-label">Piste de financement <span class="hint">(s'il en parle — ne pas l'amener)</span></div>
             <div class="chips" id="chipsFinancement"></div>
 
+            <div class="garde-fou" id="gardeFouPrix"></div>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 5 — ISSUE -->
+        <div class="step hidden" id="step5">
+          <div class="step-header">
+            <div class="step-num">6 — La suite convenue</div>
+            <div class="speech"><p id="speechRdv"></p></div>
+            <div class="q-label">Issue de l'appel</div>
+            <div class="chips" id="chipsIssue"></div>
+
+            <!-- RDV -->
             <div class="booking-section hidden" id="bookingSection">
-              <div class="booking-title">📅 Réserver l'appel stratégique</div>
+              <div class="booking-title">🎯 Préparer l'échange</div>
+              <div class="speech"><p id="speechPreparation"></p></div>
+              <div class="q-label">Ce qu'elle veut demander à Jordan <span class="hint">(ses mots — il le lira avant d'appeler)</span></div>
+              <textarea id="qQuestionJordan" rows="2" placeholder="« est-ce que ça marche aussi pour une association ? », « combien de temps par semaine ? »…"></textarea>
+              <ul class="prep-check">
+                <li>Dire que l'échange dure 30 minutes et qu'il est gratuit</li>
+                <li>Dire franchement que la formation, elle, est payante</li>
+                <li>Vérifier qu'elle sera au calme, pas en voiture</li>
+                <li>Annoncer le SMS de confirmation</li>
+              </ul>
+
+              <div class="booking-title">📅 Réserver l'appel avec Jordan</div>
               <div class="rdv-inputs">
-                <div class="field-g">
-                  <span class="field-lbl">Date</span>
-                  <input type="date" id="rdvDate">
-                </div>
-                <div class="field-g">
-                  <span class="field-lbl">Heure</span>
-                  <input type="time" id="rdvTime">
-                </div>
+                <div class="field-g"><span class="field-lbl">Date</span><input type="date" id="rdvDate"></div>
+                <div class="field-g"><span class="field-lbl">Heure</span><input type="time" id="rdvTime"></div>
               </div>
-              <button class="btn-calendly" onclick="openCalendly()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Ouvrir Calendly
-              </button>
-              <button class="btn-confirm" onclick="confirmerRDV()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Confirmer le RDV — lead gagné
-              </button>
+              <button class="btn-calendly" onclick="openCalendly()">Ouvrir Calendly</button>
+              <button class="btn-confirm" onclick="confirmerRDV()">Confirmer le rendez-vous</button>
+            </div>
+
+            <!-- Replay / prochaine conférence (uniquement si demandé) -->
+            <div class="reinscrit-block" id="reinscritBlock"></div>
+
+            <!-- Rappel daté -->
+            <div class="booking-section hidden" id="rappelSection">
+              <div class="booking-title">🔄 Reprise de contact convenue</div>
+              <div class="rdv-inputs">
+                <div class="field-g"><span class="field-lbl">Quand</span><input type="date" id="rappelDate"></div>
+              </div>
+              <p class="mini-note">Rien ne part automatiquement : c'est vous qui rappellerez à cette date.</p>
+            </div>
+
+            <!-- Pas de suite -->
+            <div class="step hidden" id="objectionStep">
+              <div class="q-label">Ce qu'il a dit <span class="hint">(verbatim, pour ne pas le rappeler pour rien)</span></div>
+              <div class="chips" id="chipsObjections"></div>
+              <textarea id="objectionDetail" rows="2" placeholder="« je ne fais pas d'Instagram », « pas le bon moment, je relance au printemps »…"></textarea>
             </div>
           </div>
         </div>
 
-        <!-- OBJECTIONS (si « pas intéressé ») -->
-        <div class="step hidden" id="objectionStep">
+        <!-- RÉSUMÉ POUR JORDAN -->
+        <div class="step hidden" id="stepResume">
           <div class="step-header">
-            <div class="step-num">🚫 Pas intéressé·e — comprendre pourquoi</div>
-            <div class="q-label">Objection principale <span class="hint">(plusieurs choix possibles)</span></div>
-            <div class="chips" id="chipsObjections"></div>
-            <div class="q-label">Préciser <span class="hint">(verbatim du prospect)</span></div>
-            <textarea id="objectionDetail" rows="2" placeholder="« C'est trop cher », « je dois voir avec mon associé », « pas le bon moment »…"></textarea>
+            <div class="step-num">7 — Ce que Jordan recevra</div>
+            <div class="resume-box" id="resumeJordan"></div>
+            <button class="btn-copy" onclick="copyResume()">📋 Copier le résumé</button>
           </div>
         </div>
 
         <!-- NOTES LIBRES -->
         <div class="step" id="stepNotes">
           <div class="step-header">
-            <div class="step-num">Notes d'appel</div>
-            <textarea id="notesLibres" rows="3" placeholder="Objections entendues, infos clés, contexte particulier, à rappeler quand…"></textarea>
+            <div class="step-num">Notes libres</div>
+            <textarea id="notesLibres" rows="3" placeholder="Ce qui ne rentre pas dans les cases : contexte, ton de l'échange, détail à ne pas oublier…"></textarea>
           </div>
         </div>
 

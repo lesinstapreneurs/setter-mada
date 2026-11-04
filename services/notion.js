@@ -38,7 +38,7 @@ const F = {
   dateRappel: 'Date rappel',        // date
   manques: 'Manques webi',          // rich_text
   positifs: 'Points positifs',      // rich_text
-  objection: 'Contenu réponse',     // rich_text : objection « pas intéressé »
+  objection: 'Contenu réponse',     // rich_text : ce qui a été dit en cas de refus
   archive: 'Archivé setter',        // checkbox : sorti de la file active, gardé en archive
 };
 
@@ -259,8 +259,6 @@ async function updateSetterLead(pageId, body) {
   if ('nb_tentatives' in body) props[F.nbTent] = wNum(body.nb_tentatives);
   if ('notes' in body) props[F.notes] = wRt(body.notes);
   if ('note_webi' in body) props[F.noteWebi] = wNum(body.note_webi);
-  if ('manques_webi' in body) props[F.manques] = wRt(body.manques_webi);
-  if ('points_positifs' in body) props[F.positifs] = wRt(body.points_positifs);
   if ('objection' in body) props[F.objection] = wRt(body.objection);
   if ('financement' in body) props[F.financement] = wSel(body.financement);
   if ('date_rdv' in body) props[F.dateRappel] = wDate(body.date_rdv);
