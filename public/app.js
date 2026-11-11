@@ -487,6 +487,13 @@ function init() {
   // Détail de ce qui a été dit en cas de refus
   const objDetail = document.getElementById('objectionDetail');
   if (objDetail) objDetail.addEventListener('input', (e) => { call.objectionDetail = e.target.value; saveObjection(); });
+  // Échap : ferme la fiche et revient aux deux colonnes (sauf fenêtre email ouverte)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !currentLead) return;
+    const modal = document.getElementById('emailModal');
+    if (modal && !modal.classList.contains('hidden')) { closeEmailModal(); return; }
+    closeLead();
+  });
   loadLeads();
   // Nouvelles inscriptions : relues chaque minute (liste courte côté serveur)
   setInterval(refreshInscrits, 60_000);
@@ -593,51 +600,27 @@ function matchSearch(l, q) {
   return textMatch || phoneMatch;
 }
 
-function renderLeads() {
-  const q = searchText.trim();
-  // Recherche = GLOBALE (tous les filtres) ; sans recherche = filtre actif
-  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
-                      : leads.filter((l) => leadCategory(l) === currentFilter))
-    .sort((a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1));
-  // Onglet Inscrits : ceux qu'on n'a pas encore eus d'abord, du plus récent au plus ancien
-  if (!q && currentFilter === 'inscrit') {
-    visibles.sort((a, b) =>
-      (inscritATraiter(b) - inscritATraiter(a)) || (chronoOf(b).ts - chronoOf(a).ts));
-  }
-  updateInscritCount();
-
-  document.getElementById('leadsCount').textContent = visibles.length;
-  const list = document.getElementById('leadsList');
-
-  if (!visibles.length) {
-    const vide = q ? '🔍 Aucun lead pour cette recherche.'
-      : currentFilter === 'appeler' ? '🎉 Plus personne à appeler dans ce filtre !'
-      : currentFilter === 'inscrit' ? 'Aucune nouvelle inscription à rappeler pour l\'instant.'
-      : 'Aucun lead dans ce filtre.';
-    list.innerHTML = `<div class="list-placeholder">${vide}</div>`;
-    return;
-  }
-
-  list.innerHTML = visibles.map((l) => {
-    const scoreCls = l.score >= 7 ? 'score-hot' : l.score >= 4 ? 'score-warm' : 'score-cold';
-    const insc = isInscrit(l);
-    const webiCls = insc ? 'badge-inscrit' : l.webi === 'Présent' ? 'badge-present' : 'badge-absent';
-    const webiLabel = insc ? '🆕 Inscrit' : l.webi === 'Présent' ? '🔥 Présent webi' : '📭 Absent webi';
-    const chrono = insc ? chronoOf(l) : null;
-    const traite = insc && l.dispo_webi;
-    const isIA = l.type_webi === 'ia';
-    const typeCls = isIA ? 'badge-ia' : 'badge-rs';
-    const typeLabel = isIA ? '🤖 IA' : '📱 RS';
-    const typeFlag = isIA ? ' type-ia' : ' type-rs';
-    const active = currentLead && currentLead.id === l.id ? ' active' : '';
-    const orange = l.statut === '🔄 À réinscrire' ? ' orange-flag' : '';
-    const dimmed = (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable' || traite) ? ' dimmed' : '';
-    const statutBadge =
-      l.statut === '🔄 À réinscrire' ? '<span class="badge badge-reinscrit">À réinscrire</span>' :
-      l.statut === '🔄 À rappeler' ? '<span class="badge badge-statut">À rappeler</span>' :
-      l.statut === '🚫 Pas intéressé' ? '<span class="badge badge-statut">Pas intéressé</span>' :
-      l.statut === '❌ Injoignable' ? '<span class="badge badge-statut">Injoignable</span>' : '';
-    return `<div class="lead-card${active}${orange}${dimmed}${typeFlag}" onclick="openLead('${l.id}')">
+// Carte d'un lead (identique dans les deux colonnes et dans les listes filtrées)
+function leadCardHtml(l) {
+  const scoreCls = l.score >= 7 ? 'score-hot' : l.score >= 4 ? 'score-warm' : 'score-cold';
+  const insc = isInscrit(l);
+  const webiCls = insc ? 'badge-inscrit' : l.webi === 'Présent' ? 'badge-present' : 'badge-absent';
+  const webiLabel = insc ? '🆕 Inscrit' : l.webi === 'Présent' ? '🔥 Présent webi' : '📭 Absent webi';
+  const chrono = insc ? chronoOf(l) : null;
+  const traite = insc && l.dispo_webi;
+  const isIA = l.type_webi === 'ia';
+  const typeCls = isIA ? 'badge-ia' : 'badge-rs';
+  const typeLabel = isIA ? '🤖 IA' : '📱 RS';
+  const typeFlag = isIA ? ' type-ia' : ' type-rs';
+  const active = currentLead && currentLead.id === l.id ? ' active' : '';
+  const orange = l.statut === '🔄 À réinscrire' ? ' orange-flag' : '';
+  const dimmed = (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable' || traite) ? ' dimmed' : '';
+  const statutBadge =
+    l.statut === '🔄 À réinscrire' ? '<span class="badge badge-reinscrit">À réinscrire</span>' :
+    l.statut === '🔄 À rappeler' ? '<span class="badge badge-statut">À rappeler</span>' :
+    l.statut === '🚫 Pas intéressé' ? '<span class="badge badge-statut">Pas intéressé</span>' :
+    l.statut === '❌ Injoignable' ? '<span class="badge badge-statut">Injoignable</span>' : '';
+  return `<div class="lead-card${active}${orange}${dimmed}${typeFlag}" onclick="openLead('${l.id}')">
       <div class="card-top">
         <span class="card-name">${esc(l.nom)}</span>
         ${chrono
@@ -653,7 +636,66 @@ function renderLeads() {
       </div>
       <div class="card-phone">${esc(formatPhone(l.telephone))}</div>
     </div>`;
-  }).join('');
+}
+
+const sortPostWebi = (a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1);
+let inscritsFaitsOuverts = false; // « déjà appelés » déplié ou non (conservé entre deux rendus)
+
+function renderLeads() {
+  const q = searchText.trim();
+  const list = document.getElementById('leadsList');
+  updateInscritCount();
+
+  // Vue par défaut : DEUX COLONNES. À gauche les inscrits à rappeler tout de
+  // suite (conférence à venir), à droite les appels d'après-conférence.
+  if (!q && currentFilter === 'appeler') {
+    const inscrits = leads.filter((l) => leadCategory(l) === 'inscrit')
+      .sort((a, b) => chronoOf(b).ts - chronoOf(a).ts);          // le plus récent en premier
+    const aFaire = inscrits.filter(inscritATraiter);
+    const faits = inscrits.filter((l) => !inscritATraiter(l));   // eus au téléphone, en attente de la conférence
+    const post = leads.filter((l) => leadCategory(l) === 'appeler').sort(sortPostWebi);
+    document.getElementById('leadsCount').textContent = aFaire.length + post.length;
+
+    // On garde la position de défilement de chaque colonne d'un rendu à l'autre
+    const scroll = ['colNowBody', 'colPostBody'].map((id) => (document.getElementById(id) || {}).scrollTop || 0);
+    const vide = (txt) => `<div class="list-placeholder">${txt}</div>`;
+    list.className = 'leads-list board';
+    list.innerHTML =
+      `<section class="col col-now">
+        <header class="col-head">
+          <div class="col-title">🔥 À rappeler tout de suite <span class="col-count${aFaire.length ? ' hot' : ''}">${aFaire.length}</span></div>
+          <div class="col-sub">Viennent de s'inscrire — conférence à venir. Le plus récent en haut.</div>
+        </header>
+        <div class="col-body" id="colNowBody">
+          ${aFaire.length ? aFaire.map(leadCardHtml).join('') : vide('Aucune nouvelle inscription à rappeler.')}
+          ${faits.length ? `<details class="col-done" id="colDone"${inscritsFaitsOuverts ? ' open' : ''}>
+            <summary>✔ ${faits.length} déjà appelé${faits.length > 1 ? 's' : ''} — en attente de la conférence</summary>
+            ${faits.map(leadCardHtml).join('')}</details>` : ''}
+        </div>
+      </section>
+      <section class="col col-post">
+        <header class="col-head">
+          <div class="col-title">📞 Après la conférence <span class="col-count">${post.length}</span></div>
+          <div class="col-sub">Présents d'abord, puis absents.</div>
+        </header>
+        <div class="col-body" id="colPostBody">
+          ${post.length ? post.map(leadCardHtml).join('') : vide('🎉 Plus personne à appeler.')}
+        </div>
+      </section>`;
+    ['colNowBody', 'colPostBody'].forEach((id, i) => { document.getElementById(id).scrollTop = scroll[i]; });
+    const done = document.getElementById('colDone');
+    if (done) done.addEventListener('toggle', () => { inscritsFaitsOuverts = done.open; });
+    return;
+  }
+
+  // Recherche (globale) ou liste filtrée : une seule liste
+  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
+                      : leads.filter((l) => leadCategory(l) === currentFilter)).sort(sortPostWebi);
+  document.getElementById('leadsCount').textContent = visibles.length;
+  list.className = 'leads-list';
+  list.innerHTML = visibles.length
+    ? visibles.map(leadCardHtml).join('')
+    : `<div class="list-placeholder">${q ? '🔍 Aucun lead pour cette recherche.' : 'Aucun lead dans ce filtre.'}</div>`;
 }
 
 // Change le filtre actif et rafraîchit la liste

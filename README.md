@@ -77,7 +77,9 @@ Le backend route selon le tag reçu (nom exact **ou** ID — double vérificatio
 
 ### Inscrits : rappel juste après l'inscription
 
-Les personnes qui viennent de s'inscrire à une conférence arrivent dans l'onglet **🆕 Inscrits** sans attendre le webinaire, avec le type de conférence (📱 RS / 🤖 IA) et un chrono depuis l'inscription. Sylvie les rappelle à chaud avec un script court :
+L'écran d'accueil est en **deux colonnes** : à gauche « 🔥 À rappeler tout de suite » (inscrits, conférence à venir), à droite « 📞 Après la conférence » (présents puis absents). Ouvrir une fiche range les deux colonnes à gauche et affiche le script à droite ; Échap ou ← revient aux deux colonnes.
+
+Les personnes qui viennent de s'inscrire à une conférence arrivent dans la colonne de gauche sans attendre le webinaire, avec le type de conférence (📱 RS / 🤖 IA) et un chrono depuis l'inscription. Sylvie les rappelle à chaud avec un script court :
 
 1. trois questions — ce que la personne fait, si elle a déjà une entreprise, ce qu'elle attend ;
 2. « serez-vous là à la conférence ? » — si non, bouton d'envoi du **replay de la dernière conférence** (fenêtre de validation, rien ne part sans clic) ;
