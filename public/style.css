@@ -859,3 +859,17 @@ input:focus { border-color: var(--lime-dark); }
   .layout:not(.show-script) .col { overflow: visible; margin-bottom: 12px; }
   .layout:not(.show-script) .col-body { overflow: visible; grid-template-columns: 1fr; }
 }
+
+
+/* ── Écran allégé : les chiffres vivent dans l'onglet Statistiques ─────── */
+.sidebar .stats-bar { display: none; }
+.pli-count {
+  display: inline-block; margin-left: 4px; padding: 0 7px; border-radius: 9px;
+  background: #eef0e8; color: var(--text-soft); font-size: 11px; font-weight: 700;
+}
+.btn-next {
+  padding: 10px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  background: var(--lime-dark); border: 1px solid var(--lime-dark); color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 700; transition: all .15s;
+}
+.btn-next:hover { background: var(--lime-deep); }

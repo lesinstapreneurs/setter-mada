@@ -168,6 +168,10 @@
                 <button class="btn-mail-replay" onclick="openEmailModal()">✉️ Envoyer le replay de la dernière conférence</button>
                 <p class="mini-note">Rien ne part sans votre clic sur « Envoyer ».</p>
               </div>
+              <!-- Toujours dit, quelle que soit la réponse : les bonus arrivent par e-mail -->
+              <div class="dispo-replay is-hidden" id="bonusBlock">
+                <div class="speech second"><p id="speechBonus"></p></div>
+              </div>
             </div>
           </div>
         </div>
@@ -332,6 +336,7 @@
         <span class="save-status" id="saveStatus"></span>
         <button class="btn-reset" onclick="resetFiche()" title="Remettre la fiche à zéro">↺ Réinitialiser</button>
         <button class="btn-save" onclick="saveAll()">💾 Sauvegarder la fiche</button>
+        <button class="btn-next" onclick="nextLead()" title="Enregistre et ouvre la fiche suivante de la même colonne">Fiche suivante →</button>
       </div>
 
     </div><!-- /scriptArea -->

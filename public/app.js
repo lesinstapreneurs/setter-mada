@@ -63,6 +63,11 @@ const SP_COMMON = {
     `— Pour que je vous oriente au mieux : <strong>vous faites quoi aujourd'hui</strong> ? ` +
     `Vous avez <strong>déjà votre entreprise</strong>, ou c'est encore un projet ? ` +
     `Et <strong>qu'est-ce que vous aimeriez retirer</strong> de cette conférence ?`,
+  // Les bonus partent par e-mail : on prévient, sinon ils dorment dans les spams.
+  bonusInscrit: () =>
+    `— Notez aussi : vous allez recevoir <strong>vos bonus par e-mail</strong>. ` +
+    `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
+    `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
   // À ne proposer QUE si elle le demande ou si elle est clairement déterminée.
   rdvInscrit: () =>
     `— Si vous préférez ne pas attendre la conférence, vous pouvez échanger directement avec ` +
@@ -89,7 +94,7 @@ const SPEECHES = {
       `<strong>trois petites questions</strong>, pour que la conférence vous soit vraiment utile. ` +
       `Vous avez deux minutes ?`,
     dispoInscrit: () =>
-      `— Dernière chose : la conférence a lieu <strong>lundi à 20h, en direct</strong>. ` +
+      `— Tout d'abord : la conférence a lieu <strong>lundi à 20h, en direct</strong>. ` +
       `Vous serez disponible ?`,
     replayInscrit: () =>
       `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
@@ -98,6 +103,7 @@ const SPEECHES = {
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
       `Bienvenue : vous êtes bien inscrit·e à notre conférence sur Instagram, lundi à 20h.\n` +
+      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
       `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
       `Dites-moi quand je peux vous rappeler 🙂`,
 
@@ -149,7 +155,7 @@ const SPEECHES = {
       `<strong>trois petites questions</strong>, pour que la conférence vous soit vraiment utile. ` +
       `Vous avez deux minutes ?`,
     dispoInscrit: () =>
-      `— Dernière chose : la conférence a lieu <strong>mercredi à 20h, en direct</strong>. ` +
+      `— Tout d'abord : la conférence a lieu <strong>mercredi à 20h, en direct</strong>. ` +
       `Vous serez disponible ?`,
     replayInscrit: () =>
       `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
@@ -158,6 +164,7 @@ const SPEECHES = {
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
       `Bienvenue : vous êtes bien inscrit·e à notre conférence sur l'intelligence artificielle, mercredi à 20h.\n` +
+      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
       `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
       `Dites-moi quand je peux vous rappeler 🙂`,
 
@@ -639,7 +646,25 @@ function leadCardHtml(l) {
 }
 
 const sortPostWebi = (a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1);
-let inscritsFaitsOuverts = false; // « déjà appelés » déplié ou non (conservé entre deux rendus)
+
+/* ── Ce qui est affiché en grand, ce qui est replié ─────────────────────
+   Une file de 500 noms ne se vide jamais : on ne montre en grand que ce qui
+   vaut un appel MAINTENANT. Le reste reste accessible, replié, sans rien
+   supprimer ni archiver.                                                  */
+const JOURS_RECENTS = 14;            // au-delà, la fiche passe dans « Plus anciens »
+function ageJours(l) {
+  const ts = new Date(l.date_ajout || l.inscrit_at || '').getTime();
+  return Number.isNaN(ts) ? 0 : Math.floor((Date.now() - ts) / 86_400_000);
+}
+const plisOuverts = {};              // état ouvert/fermé des blocs repliés, conservé entre deux rendus
+function pli(id, titre, items) {
+  if (!items.length) return '';
+  return `<details class="col-done" id="${id}"${plisOuverts[id] ? ' open' : ''}>
+    <summary>${titre} <span class="pli-count">${items.length}</span></summary>
+    ${plisOuverts[id] ? items.map(leadCardHtml).join('') : ''}</details>`;
+}
+// Ordre d'appel affiché dans chaque colonne (sert au bouton « Fiche suivante »)
+let ordreNow = [], ordrePost = [];
 
 function renderLeads() {
   const q = searchText.trim();
@@ -654,7 +679,14 @@ function renderLeads() {
     const aFaire = inscrits.filter(inscritATraiter);
     const faits = inscrits.filter((l) => !inscritATraiter(l));   // eus au téléphone, en attente de la conférence
     const post = leads.filter((l) => leadCategory(l) === 'appeler').sort(sortPostWebi);
-    document.getElementById('leadsCount').textContent = aFaire.length + post.length;
+    // En grand : les PRÉSENTS récents. Repliés : absents récents, puis anciens.
+    const recents = post.filter((l) => ageJours(l) <= JOURS_RECENTS);
+    const presents = recents.filter((l) => l.webi === 'Présent');
+    const absents = recents.filter((l) => l.webi !== 'Présent');
+    const anciens = post.filter((l) => ageJours(l) > JOURS_RECENTS);
+    ordreNow = aFaire.map((l) => l.id);
+    ordrePost = [...presents, ...absents, ...anciens].map((l) => l.id);
+    document.getElementById('leadsCount').textContent = aFaire.length + presents.length;
 
     // On garde la position de défilement de chaque colonne d'un rendu à l'autre
     const scroll = ['colNowBody', 'colPostBody'].map((id) => (document.getElementById(id) || {}).scrollTop || 0);
@@ -667,24 +699,28 @@ function renderLeads() {
           <div class="col-sub">Viennent de s'inscrire — conférence à venir. Le plus récent en haut.</div>
         </header>
         <div class="col-body" id="colNowBody">
-          ${aFaire.length ? aFaire.map(leadCardHtml).join('') : vide('Aucune nouvelle inscription à rappeler.')}
-          ${faits.length ? `<details class="col-done" id="colDone"${inscritsFaitsOuverts ? ' open' : ''}>
-            <summary>✔ ${faits.length} déjà appelé${faits.length > 1 ? 's' : ''} — en attente de la conférence</summary>
-            ${faits.map(leadCardHtml).join('')}</details>` : ''}
+          ${aFaire.length ? aFaire.map(leadCardHtml).join('') : vide('✅ Tous les nouveaux inscrits ont été appelés.')}
+          ${pli('pliFaits', '✔ Déjà appelés — en attente de la conférence', faits)}
         </div>
       </section>
       <section class="col col-post">
         <header class="col-head">
-          <div class="col-title">📞 Après la conférence <span class="col-count">${post.length}</span></div>
-          <div class="col-sub">Présents d'abord, puis absents.</div>
+          <div class="col-title">📞 Après la conférence <span class="col-count">${presents.length}</span></div>
+          <div class="col-sub">Présents des ${JOURS_RECENTS} derniers jours — les plus chauds. Le reste est replié en dessous.</div>
         </header>
         <div class="col-body" id="colPostBody">
-          ${post.length ? post.map(leadCardHtml).join('') : vide('🎉 Plus personne à appeler.')}
+          ${presents.length ? presents.map(leadCardHtml).join('') : vide('🎉 Tous les présents récents ont été appelés.')}
+          ${pli('pliAbsents', `📭 Absents des ${JOURS_RECENTS} derniers jours`, absents)}
+          ${pli('pliAnciens', `🕰 Plus de ${JOURS_RECENTS} jours`, anciens)}
         </div>
       </section>`;
     ['colNowBody', 'colPostBody'].forEach((id, i) => { document.getElementById(id).scrollTop = scroll[i]; });
-    const done = document.getElementById('colDone');
-    if (done) done.addEventListener('toggle', () => { inscritsFaitsOuverts = done.open; });
+    list.querySelectorAll('details.col-done').forEach((d) =>
+      d.addEventListener('toggle', () => {
+        if (plisOuverts[d.id] === d.open) return;
+        plisOuverts[d.id] = d.open;
+        renderLeads(); // les cartes d'un bloc replié ne sont dessinées qu'à l'ouverture
+      }));
     return;
   }
 
@@ -786,6 +822,7 @@ function prefillFromLead(lead) {
     preselectSingle('chipsDispo', dispo.value,
       dispo.tone === 'orange' ? 'selected-orange' : dispo.tone === 'neutral' ? 'selected-neutral' : 'selected-oui');
     if (isInscrit(lead) && dispo.value === 'non') document.getElementById('dispoReplay').classList.remove('is-hidden');
+    if (isInscrit(lead)) document.getElementById('bonusBlock').classList.remove('is-hidden');
   }
   // Besoin déjà noté
   if (lead.objectif) { document.getElementById('qBesoin').value = lead.objectif; call.besoin = lead.objectif; }
@@ -1066,7 +1103,8 @@ function openLead(id) {
   tog('vuBlock', insc); tog('dispoBlock', !insc);
   tog('interetStd', insc); tog('interetInscrit', !insc);
   tog('entrepriseBlock', !insc && !currentLead.entreprise);
-  tog('dispoReplay', true);
+  tog('dispoReplay', true); tog('bonusBlock', true);
+  document.getElementById('speechBonus').innerHTML = sp.bonusInscrit();
   document.getElementById('speechDispo').innerHTML = sp.dispoInscrit();
   document.getElementById('speechReplayInscrit').innerHTML = sp.replayInscrit();
   document.getElementById('speechQuestions').innerHTML = sp.questionsInscrit();
@@ -1108,6 +1146,21 @@ function openLead(id) {
   }, 1000);
 
   document.getElementById('mainArea').scrollTop = 0;
+}
+
+// « Fiche suivante » : enregistre, puis ouvre la prochaine fiche de la même
+// colonne (inscrits à rappeler, ou après-conférence) sans repasser par la liste.
+const vues = new Set();
+async function nextLead() {
+  if (!currentLead) return;
+  const id = currentLead.id;
+  vues.add(id);
+  flushAutosave();
+  renderLeads(); // recalcule l'ordre des deux colonnes
+  const file = isInscrit(currentLead) ? ordreNow : ordrePost;
+  const suivant = file.find((x) => x !== id && !vues.has(x));
+  if (!suivant) { vues.clear(); closeLead(); showToast('✅ Plus de fiche dans cette colonne'); return; }
+  openLead(suivant);
 }
 
 function closeLead() {
@@ -1433,6 +1486,7 @@ function onDispo(val) {
   const s1 = document.getElementById('step1');
   s1.classList.remove('active-step'); s1.classList.add('done-step');
   document.getElementById('dispoReplay').classList.toggle('is-hidden', val !== 'non');
+  document.getElementById('bonusBlock').classList.remove('is-hidden');
   reveal('step2', true);
   reveal('step5');
   if (currentLead) currentLead.dispo_webi = (OPTIONS.dispo.find((o) => o.value === val) || {}).stored || '';
