@@ -157,6 +157,16 @@ fiche setter → `✅ RDV booké` + date, et Pipeline → `📞 Call réservé`.
 - Les webhooks répondent immédiatement (< 500 ms), le traitement Notion est asynchrone
 - Le téléphone est cliquable (`tel:`) → lance directement l'appel OnOff
 
+## Notes de Sylvie → noCRM
+
+Jordan ne travaille que dans noCRM. Ce que Sylvie note sur une fiche (notes libres, activité, entreprise, attente, financement, réserves) est recopié sur le lead noCRM de la même personne (recherche par email), dans **un seul commentaire « 📝 Notes de Sylvie (setter) »** tenu à jour :
+
+- environ une minute après sa dernière saisie (`NOCRM_NOTES_DELAY_MS`) ;
+- quand la personne réserve un call sans passer par Sylvie (tag « Résa call ») ;
+- à la création du lead par l'app (RDV confirmé ou Calendly), tout est déjà dans la description.
+
+S'il n'existe pas encore de lead noCRM pour cette personne, rien n'est créé : les notes suivront à la réservation.
+
 ## Modifier le script d'appel
 
 Les textes lus par la setter (speechs) et les options des questions sont regroupés en haut de [public/app.js](public/app.js) (`SPEECHES` et `OPTIONS`) — modifiables sans toucher au reste du code.

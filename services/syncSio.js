@@ -16,6 +16,7 @@
 const { TAGS_PRESENT_WEBI, TAGS_ABSENT_WEBI, TAGS_RESA_CALL, TAGS_INSCRIT_WEBI } = require('../config');
 const systemeio = require('./systemeio');
 const notion = require('./notion');
+const nocrm = require('./nocrm');
 
 function cutoffISO(days) {
   return new Date(Date.now() - Number(days) * 86_400_000).toISOString();
@@ -124,7 +125,15 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
   let okUpserts = 0, inchangees = 0, okArchives = 0, errors = 0;
   for (const a of actions) {
     try {
-      if (a.kind === 'resa') { await notion.archiveSetterLead(a.email); okArchives++; }
+      if (a.kind === 'resa') {
+        const lead = await notion.archiveSetterLead(a.email);
+        okArchives++;
+        // Réservation faite sans Sylvie : ses notes éventuelles rejoignent le lead
+        // noCRM de Jordan. Sans effet si rien n'a changé ou s'il n'y a pas de lead.
+        if (lead && nocrm.isReady() && (lead.notes || lead.infos || lead.objectif)) {
+          await nocrm.syncNotes(lead).catch((e) => console.error(`⚠️ noCRM (notes) ${a.email} : ${e.message}`));
+        }
+      }
       else if (await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate, a.webiType)) okUpserts++;
       else inchangees++;
     } catch (e) {

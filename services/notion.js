@@ -325,6 +325,11 @@ async function updateSetterLead(pageId, body) {
   };
 }
 
+// Fiche complète relue dans Notion (pour recopier les notes dans noCRM).
+async function getLeadById(pageId) {
+  return pageToLead(await notionFetch(`/pages/${pageId}`));
+}
+
 // RDV confirmé par la setter → sort de la file (A réservé un call = ✔)
 // Renvoie la fiche complète (email pour le tag System.io + récap pour noCRM).
 async function bookSetterLead(pageId, dateRdv) {
@@ -559,14 +564,15 @@ async function archiveReservedCalls() {
 // (bookSetterLead) et le webhook Calendly (markBookedByEmail) comptent.
 async function archiveSetterLead(email) {
   const page = await findPageByEmail(email);
-  if (!page) return;
-  await notionFetch(`/pages/${page.id}`, 'PATCH', {
+  if (!page) return null;
+  const updated = await notionFetch(`/pages/${page.id}`, 'PATCH', {
     properties: {
       [F.aReserve]: wCheck(true),
       [F.gisement]: wSel('🟢 A réservé un call'),
     },
   });
   touchLeadsCache();
+  return pageToLead(updated); // pour recopier les notes de Sylvie dans noCRM
 }
 
 // Webhook Calendly : RDV pris → marquer booké. Renvoie la fiche (pour noCRM).
@@ -590,6 +596,7 @@ module.exports = {
   isReady,
   getSetterLeads,
   getInscritLeads,
+  getLeadById,
   knownEmails,
   updateSetterLead,
   bookSetterLead,

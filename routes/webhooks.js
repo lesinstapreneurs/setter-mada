@@ -37,7 +37,13 @@ async function processSioTag(body) {
 
   if (kind === 'resa') {
     // Le lead a réservé directement via Calendly → on archive sa fiche setter
-    if (email) await notion.archiveSetterLead(email);
+    if (email) {
+      const lead = await notion.archiveSetterLead(email);
+      // Elle a réservé sans passer par Sylvie : si Sylvie l'avait eue au
+      // téléphone avant, ses notes rejoignent le lead de Jordan dans noCRM
+      // (quelques minutes plus tard, le temps que ce lead existe).
+      if (lead) nocrm.scheduleNotes(lead.id, async () => lead, 5 * 60_000);
+    }
     return;
   }
   if (kind === 'inscrit') {

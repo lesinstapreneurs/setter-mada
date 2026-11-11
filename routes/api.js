@@ -19,6 +19,9 @@ const STATUT_TO_SIO_TAG = {
   '🔄 À réinscrire': SIO_TAG.REINSCRIT,
 };
 
+// Champs de la fiche recopiés dans noCRM quand Sylvie les modifie
+const NOTES_FIELDS = ['notes', 'infos', 'objectif', 'situation_pro', 'financement', 'objection'];
+
 // Pose un tag System.io sans bloquer ni faire échouer la requête (best-effort).
 function tagSioAsync(email, tagId, label) {
   if (!tagId || !email || !systemeio.isReady()) return;
@@ -71,6 +74,12 @@ router.patch('/leads/:id', async (req, res) => {
     // `skip_sio` : la setteuse a changé le statut mais n'a pas encore décidé
     // de réinscrire. Rien ne part tant qu'elle ne l'a pas demandé explicitement.
     if (tagId && out?.email && !skipReinscritIA && !body.skip_sio) tagSioAsync(out.email, tagId, body.statut);
+    // Ce que Sylvie vient de noter remonte dans noCRM pour Jordan, s'il a déjà
+    // un lead pour cette personne (envoi différé : on attend la fin de la saisie).
+    if (out && NOTES_FIELDS.some((k) => k in body)) {
+      const id = req.params.id;
+      nocrm.scheduleNotes(id, () => notion.getLeadById(id));
+    }
   } catch (e) {
     console.error('PATCH /api/leads :', e.message);
     res.status(500).json({ error: e.message });
