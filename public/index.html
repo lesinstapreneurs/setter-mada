@@ -60,6 +60,7 @@
 
     <!-- Filtres -->
     <div class="filter-bar" id="filterBar">
+      <button class="filter-btn filter-inscrit" data-filter="inscrit" onclick="setFilter('inscrit')">🆕 Inscrits <span class="filter-count is-hidden" id="inscritCount">0</span></button>
       <button class="filter-btn active" data-filter="appeler" onclick="setFilter('appeler')">📞 À appeler</button>
       <button class="filter-btn" data-filter="rappeler" onclick="setFilter('rappeler')">🔄 À rappeler</button>
       <button class="filter-btn" data-filter="booke" onclick="setFilter('booke')">✅ Booké</button>
@@ -148,10 +149,25 @@
             <div class="step-num">2 — Ouverture</div>
             <div class="speech"><p id="speechOuverture"></p></div>
             <div class="hint-line" id="hintOuverture"></div>
-            <div class="step-divider"></div>
-            <div class="speech second"><p id="speechVu"></p></div>
-            <div class="q-label">Ce qu'il a réellement vu <span class="hint">(s'il ne sait plus, laisser « ne sait plus »)</span></div>
-            <div class="chips" id="chipsVu"></div>
+            <!-- Après la conférence : ce qu'il a vu -->
+            <div id="vuBlock">
+              <div class="step-divider"></div>
+              <div class="speech second"><p id="speechVu"></p></div>
+              <div class="q-label">Ce qu'il a réellement vu <span class="hint">(s'il ne sait plus, laisser « ne sait plus »)</span></div>
+              <div class="chips" id="chipsVu"></div>
+            </div>
+            <!-- Juste après l'inscription : sera-t-elle là ? -->
+            <div id="dispoBlock" class="is-hidden">
+              <div class="step-divider"></div>
+              <div class="speech second"><p id="speechDispo"></p></div>
+              <div class="q-label">Sera-t-elle là à la conférence ?</div>
+              <div class="chips" id="chipsDispo"></div>
+              <div class="dispo-replay is-hidden" id="dispoReplay">
+                <div class="speech second"><p id="speechReplayInscrit"></p></div>
+                <button class="btn-mail-replay" onclick="openEmailModal()">✉️ Envoyer le replay de la dernière conférence</button>
+                <p class="mini-note">Rien ne part sans votre clic sur « Envoyer ».</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -160,18 +176,31 @@
           <div class="step-header">
             <div class="step-num">3 — Comprendre sa situation</div>
 
-            <div class="speech"><p id="speechInteret"></p></div>
-            <p class="mini-note">Enchaînez directement sur ces deux pistes : la personne
-              se reconnaît dans l'une ou l'autre, et vous obtenez une vraie réponse.</p>
-            <div class="relances" id="propositionsList"></div>
-            <div class="speech second"><p id="speechDouleurs"></p></div>
-            <div class="relances" id="relancesInteret"></div>
+            <div id="interetStd">
+              <div class="speech"><p id="speechInteret"></p></div>
+              <p class="mini-note">Enchaînez directement sur ces deux pistes : la personne
+                se reconnaît dans l'une ou l'autre, et vous obtenez une vraie réponse.</p>
+              <div class="relances" id="propositionsList"></div>
+              <div class="speech second"><p id="speechDouleurs"></p></div>
+              <div class="relances" id="relancesInteret"></div>
+            </div>
+            <!-- Appel post-inscription : les trois questions, sans plus -->
+            <div id="interetInscrit" class="is-hidden">
+              <div class="speech"><p id="speechQuestions"></p></div>
+              <p class="mini-note">Trois questions, deux minutes. Vous ne vendez rien :
+                vous faites connaissance et vous notez.</p>
+            </div>
 
             <div class="q-label">Son activité <span class="hint">(ses mots)</span></div>
             <input type="text" id="qActivite" class="text-input" placeholder="graphiste indépendante, boulangerie, association vélo…">
 
             <div class="q-label">Statut professionnel</div>
             <div class="chips" id="chipsStatut"></div>
+
+            <div id="entrepriseBlock" class="is-hidden">
+              <div class="q-label">A déjà une entreprise ?</div>
+              <div class="chips" id="chipsEntreprise"></div>
+            </div>
 
             <div class="q-label">Ce qu'il cherche à régler <span class="hint">(ses mots, pas les nôtres)</span></div>
             <textarea id="qBesoin" rows="2" placeholder="« je n'arrive pas à trouver des clients », « je sais pas faire de vidéo »…"></textarea>

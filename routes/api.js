@@ -7,7 +7,7 @@ const systemeio = require('../services/systemeio');
 const onoff = require('../services/onoff');
 const nocrm = require('../services/nocrm');
 const mailer = require('../services/mailer');
-const { syncOnce } = require('../services/syncSio');
+const { syncOnce, syncInscrits } = require('../services/syncSio');
 const { SIO_TAG, TAGS_RESA_CALL } = require('../config');
 
 const router = express.Router();
@@ -41,6 +41,17 @@ router.get('/leads', async (req, res) => {
     res.json(await notion.getSetterLeads());
   } catch (e) {
     console.error('GET /api/leads :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/leads/inscrits — inscrits dont la conférence n'a pas encore eu lieu.
+// Liste courte, relue chaque minute par l'interface (nouvelles inscriptions).
+router.get('/leads/inscrits', async (req, res) => {
+  try {
+    res.json(await notion.getInscritLeads());
+  } catch (e) {
+    console.error('GET /api/leads/inscrits :', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -155,6 +166,26 @@ router.post('/sync/run', ensureSioReady, async (req, res) => {
     res.json(await syncOnce({ windowDays, since: req.body?.since, until: req.body?.until, reactivate: !!req.body?.reactivate, dryRun: false }));
   } catch (e) {
     console.error('POST /api/sync/run :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/sync/inscrits/preview → aperçu de la passe « inscrits » (n'écrit rien)
+// POST /api/sync/inscrits/run    → la lance tout de suite
+router.get('/sync/inscrits/preview', ensureSioReady, async (req, res) => {
+  try {
+    res.json(await syncInscrits({ windowHours: req.query.hours, dryRun: true }));
+  } catch (e) {
+    console.error('GET /api/sync/inscrits/preview :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/sync/inscrits/run', ensureSioReady, async (req, res) => {
+  try {
+    res.json(await syncInscrits({ windowHours: req.body?.hours, dryRun: false }));
+  } catch (e) {
+    console.error('POST /api/sync/inscrits/run :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

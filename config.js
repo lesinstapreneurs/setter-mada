@@ -23,6 +23,14 @@ const TAGS_ABSENT_WEBI = [
   // Ajouter ici les futurs tags "absent webi"
 ];
 
+// Tags posés À L'INSCRIPTION (avant la conférence). Ils alimentent l'onglet
+// « 🆕 Inscrits » : Sylvie rappelle tout de suite, sans attendre le webinaire.
+const TAGS_INSCRIT_WEBI = [
+  { name: 'Inscrit Webi auto Lundi', id: 1684458, type: 'social' },
+  { name: 'Inscrit Webi auto IA', id: 2109768, type: 'ia' },
+  // Ajouter ici les futurs tags "inscrit webi"
+];
+
 // Un tag de réservation PAR TUNNEL : System.io en pose un différent selon la
 // conférence d'origine. N'en déclarer qu'un revient à laisser dans la file
 // d'appel tous ceux de l'autre tunnel qui ont pourtant déjà leur rendez-vous.
@@ -52,23 +60,24 @@ function inList(list, tag) {
 
 /**
  * Route un tag SIO vers son flux.
- * @returns {'present'|'absent'|'resa'|null}
+ * @returns {'present'|'absent'|'resa'|'inscrit'|null}
  */
 function matchTag(tag) {
   if (inList(TAGS_PRESENT_WEBI, tag)) return 'present';
   if (inList(TAGS_ABSENT_WEBI, tag)) return 'absent';
   if (inList(TAGS_RESA_CALL, tag)) return 'resa';
+  if (inList(TAGS_INSCRIT_WEBI, tag)) return 'inscrit';
   return null;
 }
 
 /**
- * Webinaire d'origine d'un tag (présent OU absent).
+ * Webinaire d'origine d'un tag (présent, absent OU inscrit).
  * @returns {'ia'|'social'|null}
  */
 function webiTypeOfTag(tag) {
   const name = String(tag?.name ?? '').trim();
   const id = Number(tag?.id);
-  const hit = [...TAGS_PRESENT_WEBI, ...TAGS_ABSENT_WEBI].find(
+  const hit = [...TAGS_PRESENT_WEBI, ...TAGS_ABSENT_WEBI, ...TAGS_INSCRIT_WEBI].find(
     (t) => t.name === name || (Number.isFinite(id) && t.id === id)
   );
   return hit ? hit.type : null;
@@ -78,6 +87,7 @@ module.exports = {
   TAGS_PRESENT_WEBI,
   TAGS_ABSENT_WEBI,
   TAGS_RESA_CALL,
+  TAGS_INSCRIT_WEBI,
   TAG_REINSCRIT_WEBI,
   SIO_TAG,
   matchTag,

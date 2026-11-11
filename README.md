@@ -75,6 +75,30 @@ Le backend route selon le tag reçu (nom exact **ou** ID — double vérificatio
 
 🆕 **Nouveau webinaire un autre jour ?** Ajouter simplement le nouveau tag dans [config.js](config.js) (`TAGS_PRESENT_WEBI` / `TAGS_ABSENT_WEBI`) + créer le workflow SIO correspondant. Aucun autre code à toucher.
 
+### Inscrits : rappel juste après l'inscription
+
+Les personnes qui viennent de s'inscrire à une conférence arrivent dans l'onglet **🆕 Inscrits** sans attendre le webinaire, avec le type de conférence (📱 RS / 🤖 IA) et un chrono depuis l'inscription. Sylvie les rappelle à chaud avec un script court :
+
+1. trois questions — ce que la personne fait, si elle a déjà une entreprise, ce qu'elle attend ;
+2. « serez-vous là à la conférence ? » — si non, bouton d'envoi du **replay de la dernière conférence** (fenêtre de validation, rien ne part sans clic) ;
+3. si la personne le demande et qu'elle est déterminée : **call direct avec Jordan** (même réservation Calendly + résumé noCRM que le reste de l'app).
+
+Après la conférence, le tag présent/absent fait repasser la fiche dans « À appeler », avec les réponses déjà notées.
+
+| Tag d'inscription | ID | Conférence |
+| --- | --- | --- |
+| `Inscrit Webi auto Lundi` | `1684458` | Réseaux sociaux |
+| `Inscrit Webi auto IA` | `2109768` | IA |
+
+Deux façons d'alimenter l'onglet, qui se complètent :
+
+- **Passe automatique** (rien à configurer) : toutes les `SYSTEMEIO_INSCRIT_POLL_MIN` minutes (5 par défaut), l'app lit dans System.io les inscrits des `SYSTEMEIO_INSCRIT_WINDOW_HOURS` dernières heures (48 par défaut) et crée les fiches inconnues. Elle ne modifie jamais une fiche existante. `SYSTEMEIO_INSCRIT_SYNC_ENABLED=false` la coupe.
+- **Webhook instantané** (optionnel) : un workflow System.io « Tag ajouté » sur chacun des deux tags, vers le même `POST /webhook/sio-tag`. Utile surtout pour les personnes déjà connues qui se **réinscrivent** : elles reviennent dans l'onglet Inscrits (sauf « Pas intéressé » et RDV bookés).
+
+Aperçu sans rien écrire : `GET /api/sync/inscrits/preview` · lancer tout de suite : `POST /api/sync/inscrits/run`.
+
+Les réponses « entreprise » et « présence à la conférence » sont rangées dans la propriété Notion existante **Infos complémentaires** (aucune propriété à créer) ; la présence d'un inscrit vaut `⏳ À venir`.
+
 ## 4. Webhook Calendly
 
 Calendly n'expose les webhooks que via son API (plan payant). Créer la souscription :
@@ -118,6 +142,7 @@ fiche setter → `✅ RDV booké` + date, et Pipeline → `📞 Call réservé`.
 | `POST` | `/webhook/sio-tag` | Tags SIO → création/MAJ fiche setter, ou archivage si `Résa call` |
 | `POST` | `/webhook/calendly` | Résa Calendly → `✅ RDV booké` + MAJ Pipeline |
 | `GET` | `/api/leads` | File d'appel (hors bookés), présents d'abord, score recalculé |
+| `GET` | `/api/leads/inscrits` | Inscrits dont la conférence est à venir (relu chaque minute par l'interface) |
 | `PATCH` | `/api/leads/:id` | MAJ fiche (statut, notes, note webi, financement…) |
 | `POST` | `/api/leads/:id/book` | RDV confirmé par la setter → Setter + Pipeline |
 | `GET` | `/api/stats` | Dashboard (compteurs, taux conv., RDV sur 7 jours) |
