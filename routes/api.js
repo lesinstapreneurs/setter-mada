@@ -7,7 +7,7 @@ const systemeio = require('../services/systemeio');
 const onoff = require('../services/onoff');
 const nocrm = require('../services/nocrm');
 const mailer = require('../services/mailer');
-const { syncOnce } = require('../services/syncSio');
+const { syncOnce, syncInscrits } = require('../services/syncSio');
 const { SIO_TAG, TAGS_RESA_CALL } = require('../config');
 
 const router = express.Router();
@@ -18,6 +18,9 @@ const STATUT_TO_SIO_TAG = {
   '❌ Injoignable': SIO_TAG.INJOIGNABLE,
   '🔄 À réinscrire': SIO_TAG.REINSCRIT,
 };
+
+// Champs de la fiche recopiés dans noCRM quand Sylvie les modifie
+const NOTES_FIELDS = ['notes', 'infos', 'objectif', 'situation_pro', 'financement', 'objection'];
 
 // Pose un tag System.io sans bloquer ni faire échouer la requête (best-effort).
 function tagSioAsync(email, tagId, label) {
@@ -45,6 +48,17 @@ router.get('/leads', async (req, res) => {
   }
 });
 
+// GET /api/leads/inscrits — inscrits dont la conférence n'a pas encore eu lieu.
+// Liste courte, relue chaque minute par l'interface (nouvelles inscriptions).
+router.get('/leads/inscrits', async (req, res) => {
+  try {
+    res.json(await notion.getInscritLeads());
+  } catch (e) {
+    console.error('GET /api/leads/inscrits :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PATCH /api/leads/:id — mise à jour d'une fiche pendant / après l'appel
 router.patch('/leads/:id', async (req, res) => {
   try {
@@ -60,6 +74,12 @@ router.patch('/leads/:id', async (req, res) => {
     // `skip_sio` : la setteuse a changé le statut mais n'a pas encore décidé
     // de réinscrire. Rien ne part tant qu'elle ne l'a pas demandé explicitement.
     if (tagId && out?.email && !skipReinscritIA && !body.skip_sio) tagSioAsync(out.email, tagId, body.statut);
+    // Ce que Sylvie vient de noter remonte dans noCRM pour Jordan, s'il a déjà
+    // un lead pour cette personne (envoi différé : on attend la fin de la saisie).
+    if (out && NOTES_FIELDS.some((k) => k in body)) {
+      const id = req.params.id;
+      nocrm.scheduleNotes(id, () => notion.getLeadById(id));
+    }
   } catch (e) {
     console.error('PATCH /api/leads :', e.message);
     res.status(500).json({ error: e.message });
@@ -155,6 +175,26 @@ router.post('/sync/run', ensureSioReady, async (req, res) => {
     res.json(await syncOnce({ windowDays, since: req.body?.since, until: req.body?.until, reactivate: !!req.body?.reactivate, dryRun: false }));
   } catch (e) {
     console.error('POST /api/sync/run :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/sync/inscrits/preview → aperçu de la passe « inscrits » (n'écrit rien)
+// POST /api/sync/inscrits/run    → la lance tout de suite
+router.get('/sync/inscrits/preview', ensureSioReady, async (req, res) => {
+  try {
+    res.json(await syncInscrits({ windowHours: req.query.hours, dryRun: true }));
+  } catch (e) {
+    console.error('GET /api/sync/inscrits/preview :', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/sync/inscrits/run', ensureSioReady, async (req, res) => {
+  try {
+    res.json(await syncInscrits({ windowHours: req.body?.hours, dryRun: false }));
+  } catch (e) {
+    console.error('POST /api/sync/inscrits/run :', e.message);
     res.status(500).json({ error: e.message });
   }
 });

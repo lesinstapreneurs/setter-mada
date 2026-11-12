@@ -37,10 +37,37 @@ async function processSioTag(body) {
 
   if (kind === 'resa') {
     // Le lead a réservé directement via Calendly → on archive sa fiche setter
-    if (email) await notion.archiveSetterLead(email);
+    if (email) {
+      const lead = await notion.archiveSetterLead(email);
+      // Elle a réservé sans passer par Sylvie : si Sylvie l'avait eue au
+      // téléphone avant, ses notes rejoignent le lead de Jordan dans noCRM
+      // (quelques minutes plus tard, le temps que ce lead existe).
+      if (lead) nocrm.scheduleNotes(lead.id, async () => lead, 5 * 60_000);
+    }
+    return;
+  }
+  if (kind === 'inscrit') {
+    // Inscription à une conférence → onglet « 🆕 Inscrits », à rappeler à chaud.
+    // reactivate=true : une personne déjà connue qui se réinscrit y revient aussi.
+    await notion.upsertWebiLead(flatContact(contact), 'inscrit', true, webiTypeOfTag(tag));
     return;
   }
   await notion.upsertWebiLead(contact, kind, false, webiTypeOfTag(tag));
+}
+
+// System.io envoie prénom / téléphone soit à plat, soit dans contact.fields
+// (tableau {slug, value} ou objet) selon la version → on met tout à plat.
+function flatContact(c) {
+  const f = c.fields || {};
+  const field = (slug) =>
+    (Array.isArray(f) ? (f.find((x) => x.slug === slug) || {}).value : f[slug]) || '';
+  return {
+    email: c.email,
+    first_name: c.first_name || field('first_name'),
+    last_name: c.last_name || c.surname || field('surname'),
+    phone: c.phone || c.phone_number || field('phone_number'),
+    registered_at: null, // le tag vient d'être posé : l'inscription, c'est maintenant
+  };
 }
 
 // ── POST /webhook/calendly ───────────────────────────────────────────────

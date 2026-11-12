@@ -56,6 +56,24 @@ const SP_COMMON = {
     `avec ce qui est finançable dans votre cas. C'est un accompagnement payant, ` +
     `je vous le dis franchement — l'échange avec lui, lui, est gratuit.`,
 
+  // ── Appel post-inscription ──────────────────────────────────────────
+  // Les trois questions : ce qu'elle fait, si elle a déjà une entreprise,
+  // ce qu'elle attend. C'est le prétexte de l'appel — on ne vend rien.
+  questionsInscrit: () =>
+    `— Pour que je vous oriente au mieux : <strong>vous faites quoi aujourd'hui</strong> ? ` +
+    `Vous avez <strong>déjà votre entreprise</strong>, ou c'est encore un projet ? ` +
+    `Et <strong>qu'est-ce que vous aimeriez retirer</strong> de cette conférence ?`,
+  // Les bonus partent par e-mail : on prévient, sinon ils dorment dans les spams.
+  bonusInscrit: () =>
+    `— Notez aussi : vous allez recevoir <strong>vos bonus par e-mail</strong>. ` +
+    `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
+    `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
+  // À ne proposer QUE si elle le demande ou si elle est clairement déterminée.
+  rdvInscrit: () =>
+    `— Si vous préférez ne pas attendre la conférence, vous pouvez échanger directement avec ` +
+    `<strong>Jordan, notre expert</strong> : une trentaine de minutes, c'est gratuit et sans ` +
+    `engagement. Il regarde votre situation avec vous.`,
+
   // Rassurance — seulement si la personne doute du sérieux.
   rassurance: () =>
     `— Ça fait <strong>8 ans</strong> qu'on accompagne des entrepreneurs, ` +
@@ -68,6 +86,27 @@ const SP_COMMON = {
 const SPEECHES = {
   social: {
     ...SP_COMMON,
+    // ── Appel juste après l'inscription (la conférence n'a pas encore eu lieu) ──
+    ouvertureInscrit: (p) =>
+      `— Bonjour${p ? ' ' + p : ''}, c'est <strong>Sylvie des Instapreneurs</strong>. ` +
+      `Vous venez de vous inscrire à notre <strong>conférence gratuite sur Instagram</strong>, ` +
+      `lundi à 20h. Je vous appelle simplement pour vous souhaiter la bienvenue et vous poser ` +
+      `<strong>trois petites questions</strong>, pour que la conférence vous soit vraiment utile. ` +
+      `Vous avez deux minutes ?`,
+    dispoInscrit: () =>
+      `— Tout d'abord : la conférence a lieu <strong>lundi à 20h, en direct</strong>. ` +
+      `Vous serez disponible ?`,
+    replayInscrit: () =>
+      `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
+      `conférence</strong> : vous le regardez quand vous voulez. Et vous restez inscrit·e à celle ` +
+      `de lundi, si finalement vous vous libérez.`,
+    smsInscrit: (p) =>
+      `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
+      `Bienvenue : vous êtes bien inscrit·e à notre conférence sur Instagram, lundi à 20h.\n` +
+      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
+      `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
+      `Dites-moi quand je peux vous rappeler 🙂`,
+
     ouverturePresent: (p) =>
       `— Bonjour${p ? ' ' + p : ''}, c'est <strong>Sylvie des Instapreneurs</strong>. ` +
       `Je vous appelle à la suite de la <strong>conférence de lundi</strong>. Vous avez quelques minutes ?`,
@@ -108,6 +147,27 @@ const SPEECHES = {
 
   ia: {
     ...SP_COMMON,
+    // ── Appel juste après l'inscription (la conférence n'a pas encore eu lieu) ──
+    ouvertureInscrit: (p) =>
+      `— Bonjour${p ? ' ' + p : ''}, c'est <strong>Sylvie des Instapreneurs</strong>. ` +
+      `Vous venez de vous inscrire à notre <strong>conférence gratuite sur l'intelligence artificielle</strong>, ` +
+      `mercredi à 20h. Je vous appelle simplement pour vous souhaiter la bienvenue et vous poser ` +
+      `<strong>trois petites questions</strong>, pour que la conférence vous soit vraiment utile. ` +
+      `Vous avez deux minutes ?`,
+    dispoInscrit: () =>
+      `— Tout d'abord : la conférence a lieu <strong>mercredi à 20h, en direct</strong>. ` +
+      `Vous serez disponible ?`,
+    replayInscrit: () =>
+      `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
+      `conférence</strong> : vous le regardez quand vous voulez. Et vous restez inscrit·e à celle ` +
+      `de mercredi, si finalement vous vous libérez.`,
+    smsInscrit: (p) =>
+      `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
+      `Bienvenue : vous êtes bien inscrit·e à notre conférence sur l'intelligence artificielle, mercredi à 20h.\n` +
+      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
+      `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
+      `Dites-moi quand je peux vous rappeler 🙂`,
+
     ouverturePresent: (p) =>
       `— Bonjour${p ? ' ' + p : ''}, c'est <strong>Sylvie des Instapreneurs</strong>. ` +
       `Je vous appelle à la suite de la <strong>conférence de mercredi</strong>. Vous avez quelques minutes ?`,
@@ -282,6 +342,23 @@ const OPTIONS = {
     { label: 'Rappeler à une date', value: 'rappel', tone: 'neutral' },
     { label: 'Pas de suite', value: 'non', tone: 'non' },
   ],
+  // ── Appel post-inscription ──
+  dispo: [
+    { label: 'Oui, elle sera là', value: 'oui', tone: 'oui', stored: 'sera présent·e' },
+    { label: 'Non, pas disponible', value: 'non', tone: 'orange', sub: 'proposer le replay', stored: 'indisponible' },
+    { label: 'Ne sait pas encore', value: 'nsp', tone: 'neutral', stored: 'ne sait pas encore' },
+  ],
+  entreprise: [
+    { label: 'Oui', value: 'Oui' },
+    { label: 'En création', value: 'En création' },
+    { label: 'Non', value: 'Non' },
+  ],
+  issueInscrit: [
+    { label: 'On se retrouve à la conférence', value: 'conf', tone: 'neutral', sub: 'rien de plus pour l\'instant' },
+    { label: 'Call direct avec Jordan', value: 'rdv', tone: 'oui', sub: 'seulement si elle le demande et qu\'elle est déterminée' },
+    { label: 'Rappeler à une date', value: 'rappel', tone: 'neutral' },
+    { label: 'Ne souhaite pas être rappelée', value: 'non', tone: 'non' },
+  ],
   objections: [
     'Pas le temps', 'Budget', 'Doit en parler', 'Veut réfléchir',
     'Pas le bon moment', 'Pas concerné par le sujet', 'Déjà formé ailleurs',
@@ -295,6 +372,7 @@ function optFor(key) { return OPTIONS[key]; }
 
 /* ── Données de démo (si backend non connecté) ─────────────────────────── */
 const DEMO_LEADS = [
+  { id: 'demo-0', nom: 'Claire Morel', prenom: 'Claire', telephone: '0655443322', email: 'claire@mail.com', statut: '📞 À appeler', webi: 'Inscrit', type_webi: 'ia', score: 10, inscrit_at: new Date(Date.now() - 6 * 60000).toISOString(), niveau_ig: '', situation_pro: '', objectif: '', lien_instagram: '', briefing: 'Vient de s\'inscrire à la conférence IA.', nb_tentatives: 0, notes: '', financement: '' },
   { id: 'demo-1', nom: 'Marie Dupont', telephone: '0612345678', email: 'marie@mail.com', statut: '🔥 Présent webi', webi: 'Présent', score: 9, niveau_ig: 'Débutant', situation_pro: 'Salarié', objectif: 'Monétiser ses réseaux', lien_instagram: 'https://instagram.com/mariedupont', briefing: 'Lead très chaud : salariée, veut quitter son emploi, a suivi tout le webinaire. CPF dispo a priori.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
   { id: 'demo-2', nom: 'Lucas Bernard', telephone: '0698765432', email: 'lucas@mail.com', statut: '🔥 Présent webi', webi: 'Présent', score: 7, niveau_ig: 'Intermédiaire', situation_pro: 'Auto-entrepreneur', objectif: 'Construire sa marque perso', lien_instagram: '', briefing: 'Auto-entrepreneur, OPCO possible. Cherche de la clarté sur son positionnement.', nb_tentatives: 1, notes: '', financement: 'Non identifié' },
   { id: 'demo-3', nom: 'Sophie Martin', telephone: '0611223344', email: 'sophie@mail.com', statut: '📭 Absent webi', webi: 'Absent', type_webi: 'ia', score: 6, niveau_ig: 'Débutant', situation_pro: 'En reconversion', objectif: 'Quitter son emploi', lien_instagram: 'https://instagram.com/sophiemartin', briefing: 'En reconversion, motivée, mais n\'a pas vu le webinaire IA. Proposer la réinscription en douceur.', nb_tentatives: 0, notes: '', financement: 'Non identifié' },
@@ -318,6 +396,8 @@ function newCallState() {
   return {
     repondu: null, nbTentatives: 0,
     vu: null,                      // 'rien' | 'partie' | 'offre' | 'inconnu'
+    dispo: null,                   // inscrits : 'oui' | 'non' | 'nsp' (sera là à la conférence ?)
+    entreprise: null,              // inscrits : 'Oui' | 'En création' | 'Non'
     activite: '', statut: null,
     besoin: '',
     intention: null,               // 'formation' | 'decouverte' | 'inconnu' | 'non'
@@ -381,6 +461,11 @@ function normalizeDemoPatch(p) {
   if ('points_positifs' in p) out.positifs = p.points_positifs;
   if ('objectif' in p) out.objectif = p.objectif;
   if ('objection' in p) out.objection = p.objection;
+  if ('infos' in p) {
+    out.infos = p.infos;
+    out.entreprise = infoOf(p.infos, 'Entreprise');
+    out.dispo_webi = infoOf(p.infos, 'Conférence');
+  }
   return out;
 }
 
@@ -409,7 +494,16 @@ function init() {
   // Détail de ce qui a été dit en cas de refus
   const objDetail = document.getElementById('objectionDetail');
   if (objDetail) objDetail.addEventListener('input', (e) => { call.objectionDetail = e.target.value; saveObjection(); });
+  // Échap : ferme la fiche et revient aux deux colonnes (sauf fenêtre email ouverte)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !currentLead) return;
+    const modal = document.getElementById('emailModal');
+    if (modal && !modal.classList.contains('hidden')) { closeEmailModal(); return; }
+    closeLead();
+  });
   loadLeads();
+  // Nouvelles inscriptions : relues chaque minute (liste courte côté serveur)
+  setInterval(refreshInscrits, 60_000);
 }
 
 async function loadLeads() {
@@ -435,7 +529,62 @@ function leadCategory(l) {
   if (l.statut === '✅ RDV booké') return 'booke';
   if (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') return 'perdu';
   if (l.statut === '🔄 À rappeler' || l.statut === '🔄 À réinscrire') return 'rappeler';
+  // Inscrit dont la conférence n'a pas encore eu lieu → onglet dédié. Après la
+  // conférence, le tag présent/absent le fait passer tout seul dans « À appeler ».
+  if (isInscrit(l)) return 'inscrit';
   return 'appeler'; // 📞 À appeler / vide
+}
+
+/* ── Inscrits (appel juste après l'inscription) ────────────────────────── */
+function isInscrit(l) { return !!l && l.webi === 'Inscrit'; }
+// Inscrit pas encore eu au téléphone (c'est lui qu'on compte dans la pastille)
+function inscritATraiter(l) {
+  return isInscrit(l) && leadCategory(l) === 'inscrit' && !l.dispo_webi;
+}
+// Lit « Entreprise : Oui · Conférence : sera présent·e »
+function infoOf(infos, label) {
+  const part = String(infos || '').split(' · ').find((x) => x.startsWith(label + ' : '));
+  return part ? part.slice(label.length + 3).trim() : '';
+}
+function buildInfos() {
+  const parts = [];
+  if (call.entreprise) parts.push('Entreprise : ' + call.entreprise);
+  const d = OPTIONS.dispo.find((o) => o.value === call.dispo);
+  if (d) parts.push('Conférence : ' + d.stored);
+  return parts.join(' · ');
+}
+// « il y a 12 min » + couleur : vert < 15 min, orange < 2 h, gris au-delà
+function chronoOf(l) {
+  const ts = new Date(l.inscrit_at || l.date_ajout || '').getTime();
+  if (Number.isNaN(ts)) return { label: 'inscrit', cls: 'chrono-cold', ts: 0 };
+  const min = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  const label = min < 1 ? 'à l\'instant' : min < 60 ? `il y a ${min} min`
+    : min < 1440 ? `il y a ${Math.floor(min / 60)} h` : `il y a ${Math.floor(min / 1440)} j`;
+  return { label, cls: min < 15 ? 'chrono-hot' : min < 120 ? 'chrono-warm' : 'chrono-cold', ts };
+}
+const BASE_TITLE = document.title;
+function updateInscritCount() {
+  const n = leads.filter(inscritATraiter).length;
+  const el = document.getElementById('inscritCount');
+  if (el) { el.textContent = n; el.classList.toggle('is-hidden', n === 0); }
+  document.title = (n ? `(${n}) ` : '') + BASE_TITLE;
+}
+// Ajoute à la liste les inscriptions arrivées depuis le chargement de la page.
+async function refreshInscrits() {
+  if (demoMode) { renderLeads(); return; }
+  try {
+    const fresh = await api('/api/leads/inscrits');
+    const connus = new Set(leads.map((l) => l.id));
+    const nouveaux = fresh.filter((l) => !connus.has(l.id));
+    if (nouveaux.length) {
+      leads.push(...nouveaux);
+      const n = nouveaux[0];
+      showToast(nouveaux.length === 1
+        ? `🆕 Nouvelle inscription : ${n.prenom || n.nom} (${webiTypeOf(n) === 'ia' ? 'IA' : 'réseaux sociaux'})`
+        : `🆕 ${nouveaux.length} nouvelles inscriptions à rappeler`);
+    }
+  } catch { /* réseau : on réessaiera à la minute suivante */ }
+  renderLeads(); // rafraîchit aussi les chronos
 }
 // Normalise un téléphone FR : enlève tout sauf chiffres, l'indicatif 33 et le 0
 // de tête → forme canonique de 9 chiffres (ex: 33652379895 / 0652379895 → 652379895)
@@ -458,54 +607,131 @@ function matchSearch(l, q) {
   return textMatch || phoneMatch;
 }
 
-function renderLeads() {
-  const q = searchText.trim();
-  // Recherche = GLOBALE (tous les filtres) ; sans recherche = filtre actif
-  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
-                      : leads.filter((l) => leadCategory(l) === currentFilter))
-    .sort((a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1));
-
-  document.getElementById('leadsCount').textContent = visibles.length;
-  const list = document.getElementById('leadsList');
-
-  if (!visibles.length) {
-    const vide = q ? '🔍 Aucun lead pour cette recherche.'
-      : currentFilter === 'appeler' ? '🎉 Plus personne à appeler dans ce filtre !'
-      : 'Aucun lead dans ce filtre.';
-    list.innerHTML = `<div class="list-placeholder">${vide}</div>`;
-    return;
-  }
-
-  list.innerHTML = visibles.map((l) => {
-    const scoreCls = l.score >= 7 ? 'score-hot' : l.score >= 4 ? 'score-warm' : 'score-cold';
-    const webiCls = l.webi === 'Présent' ? 'badge-present' : 'badge-absent';
-    const webiLabel = l.webi === 'Présent' ? '🔥 Présent webi' : '📭 Absent webi';
-    const isIA = l.type_webi === 'ia';
-    const typeCls = isIA ? 'badge-ia' : 'badge-rs';
-    const typeLabel = isIA ? '🤖 IA' : '📱 RS';
-    const typeFlag = isIA ? ' type-ia' : ' type-rs';
-    const active = currentLead && currentLead.id === l.id ? ' active' : '';
-    const orange = l.statut === '🔄 À réinscrire' ? ' orange-flag' : '';
-    const dimmed = (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable') ? ' dimmed' : '';
-    const statutBadge =
-      l.statut === '🔄 À réinscrire' ? '<span class="badge badge-reinscrit">À réinscrire</span>' :
-      l.statut === '🔄 À rappeler' ? '<span class="badge badge-statut">À rappeler</span>' :
-      l.statut === '🚫 Pas intéressé' ? '<span class="badge badge-statut">Pas intéressé</span>' :
-      l.statut === '❌ Injoignable' ? '<span class="badge badge-statut">Injoignable</span>' : '';
-    return `<div class="lead-card${active}${orange}${dimmed}${typeFlag}" onclick="openLead('${l.id}')">
+// Carte d'un lead (identique dans les deux colonnes et dans les listes filtrées)
+function leadCardHtml(l) {
+  const scoreCls = l.score >= 7 ? 'score-hot' : l.score >= 4 ? 'score-warm' : 'score-cold';
+  const insc = isInscrit(l);
+  const webiCls = insc ? 'badge-inscrit' : l.webi === 'Présent' ? 'badge-present' : 'badge-absent';
+  const webiLabel = insc ? '🆕 Inscrit' : l.webi === 'Présent' ? '🔥 Présent webi' : '📭 Absent webi';
+  const chrono = insc ? chronoOf(l) : null;
+  const traite = insc && l.dispo_webi;
+  const isIA = l.type_webi === 'ia';
+  const typeCls = isIA ? 'badge-ia' : 'badge-rs';
+  const typeLabel = isIA ? '🤖 IA' : '📱 RS';
+  const typeFlag = isIA ? ' type-ia' : ' type-rs';
+  const active = currentLead && currentLead.id === l.id ? ' active' : '';
+  const orange = l.statut === '🔄 À réinscrire' ? ' orange-flag' : '';
+  const dimmed = (l.statut === '🚫 Pas intéressé' || l.statut === '❌ Injoignable' || traite) ? ' dimmed' : '';
+  const statutBadge =
+    l.statut === '🔄 À réinscrire' ? '<span class="badge badge-reinscrit">À réinscrire</span>' :
+    l.statut === '🔄 À rappeler' ? '<span class="badge badge-statut">À rappeler</span>' :
+    l.statut === '🚫 Pas intéressé' ? '<span class="badge badge-statut">Pas intéressé</span>' :
+    l.statut === '❌ Injoignable' ? '<span class="badge badge-statut">Injoignable</span>' : '';
+  return `<div class="lead-card${active}${orange}${dimmed}${typeFlag}" onclick="openLead('${l.id}')">
       <div class="card-top">
         <span class="card-name">${esc(l.nom)}</span>
-        <span class="score-pill ${scoreCls}">${l.score}/10</span>
+        ${chrono
+          ? `<span class="score-pill ${chrono.cls}">${chrono.label}</span>`
+          : `<span class="score-pill ${scoreCls}">${l.score}/10</span>`}
       </div>
       <div class="card-badges">
         <span class="badge ${typeCls}">${typeLabel}</span>
         <span class="badge ${webiCls}">${webiLabel}</span>
         ${statutBadge}
+        ${traite ? `<span class="badge badge-traite">✔ ${esc(l.dispo_webi)}</span>` : ''}
         ${l.nb_tentatives > 0 ? `<span class="badge badge-tentatives">${l.nb_tentatives} appel${l.nb_tentatives > 1 ? 's' : ''}</span>` : ''}
       </div>
       <div class="card-phone">${esc(formatPhone(l.telephone))}</div>
     </div>`;
-  }).join('');
+}
+
+const sortPostWebi = (a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1);
+
+/* ── Ce qui est affiché en grand, ce qui est replié ─────────────────────
+   Une file de 500 noms ne se vide jamais : on ne montre en grand que ce qui
+   vaut un appel MAINTENANT. Le reste reste accessible, replié, sans rien
+   supprimer ni archiver.                                                  */
+const JOURS_RECENTS = 14;            // au-delà, la fiche passe dans « Plus anciens »
+function ageJours(l) {
+  const ts = new Date(l.date_ajout || l.inscrit_at || '').getTime();
+  return Number.isNaN(ts) ? 0 : Math.floor((Date.now() - ts) / 86_400_000);
+}
+const plisOuverts = {};              // état ouvert/fermé des blocs repliés, conservé entre deux rendus
+function pli(id, titre, items) {
+  if (!items.length) return '';
+  return `<details class="col-done" id="${id}"${plisOuverts[id] ? ' open' : ''}>
+    <summary>${titre} <span class="pli-count">${items.length}</span></summary>
+    ${plisOuverts[id] ? items.map(leadCardHtml).join('') : ''}</details>`;
+}
+// Ordre d'appel affiché dans chaque colonne (sert au bouton « Fiche suivante »)
+let ordreNow = [], ordrePost = [];
+
+function renderLeads() {
+  const q = searchText.trim();
+  const list = document.getElementById('leadsList');
+  updateInscritCount();
+
+  // Vue par défaut : DEUX COLONNES. À gauche les inscrits à rappeler tout de
+  // suite (conférence à venir), à droite les appels d'après-conférence.
+  if (!q && currentFilter === 'appeler') {
+    const inscrits = leads.filter((l) => leadCategory(l) === 'inscrit')
+      .sort((a, b) => chronoOf(b).ts - chronoOf(a).ts);          // le plus récent en premier
+    const aFaire = inscrits.filter(inscritATraiter);
+    const faits = inscrits.filter((l) => !inscritATraiter(l));   // eus au téléphone, en attente de la conférence
+    const post = leads.filter((l) => leadCategory(l) === 'appeler').sort(sortPostWebi);
+    // En grand : les PRÉSENTS récents. Repliés : absents récents, puis anciens.
+    const recents = post.filter((l) => ageJours(l) <= JOURS_RECENTS);
+    const presents = recents.filter((l) => l.webi === 'Présent');
+    const absents = recents.filter((l) => l.webi !== 'Présent');
+    const anciens = post.filter((l) => ageJours(l) > JOURS_RECENTS);
+    ordreNow = aFaire.map((l) => l.id);
+    ordrePost = [...presents, ...absents, ...anciens].map((l) => l.id);
+    document.getElementById('leadsCount').textContent = aFaire.length + presents.length;
+
+    // On garde la position de défilement de chaque colonne d'un rendu à l'autre
+    const scroll = ['colNowBody', 'colPostBody'].map((id) => (document.getElementById(id) || {}).scrollTop || 0);
+    const vide = (txt) => `<div class="list-placeholder">${txt}</div>`;
+    list.className = 'leads-list board';
+    list.innerHTML =
+      `<section class="col col-now">
+        <header class="col-head">
+          <div class="col-title">🔥 À rappeler tout de suite <span class="col-count${aFaire.length ? ' hot' : ''}">${aFaire.length}</span></div>
+          <div class="col-sub">Viennent de s'inscrire — conférence à venir. Le plus récent en haut.</div>
+        </header>
+        <div class="col-body" id="colNowBody">
+          ${aFaire.length ? aFaire.map(leadCardHtml).join('') : vide('✅ Tous les nouveaux inscrits ont été appelés.')}
+          ${pli('pliFaits', '✔ Déjà appelés — en attente de la conférence', faits)}
+        </div>
+      </section>
+      <section class="col col-post">
+        <header class="col-head">
+          <div class="col-title">📞 Après la conférence <span class="col-count">${presents.length}</span></div>
+          <div class="col-sub">Présents des ${JOURS_RECENTS} derniers jours — les plus chauds. Le reste est replié en dessous.</div>
+        </header>
+        <div class="col-body" id="colPostBody">
+          ${presents.length ? presents.map(leadCardHtml).join('') : vide('🎉 Tous les présents récents ont été appelés.')}
+          ${pli('pliAbsents', `📭 Absents des ${JOURS_RECENTS} derniers jours`, absents)}
+          ${pli('pliAnciens', `🕰 Plus de ${JOURS_RECENTS} jours`, anciens)}
+        </div>
+      </section>`;
+    ['colNowBody', 'colPostBody'].forEach((id, i) => { document.getElementById(id).scrollTop = scroll[i]; });
+    list.querySelectorAll('details.col-done').forEach((d) =>
+      d.addEventListener('toggle', () => {
+        if (plisOuverts[d.id] === d.open) return;
+        plisOuverts[d.id] = d.open;
+        renderLeads(); // les cartes d'un bloc replié ne sont dessinées qu'à l'ouverture
+      }));
+    return;
+  }
+
+  // Recherche (globale) ou liste filtrée : une seule liste
+  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
+                      : leads.filter((l) => leadCategory(l) === currentFilter)).sort(sortPostWebi);
+  document.getElementById('leadsCount').textContent = visibles.length;
+  list.className = 'leads-list';
+  list.innerHTML = visibles.length
+    ? visibles.map(leadCardHtml).join('')
+    : `<div class="list-placeholder">${q ? '🔍 Aucun lead pour cette recherche.' : 'Aucun lead dans ce filtre.'}</div>`;
 }
 
 // Change le filtre actif et rafraîchit la liste
@@ -588,6 +814,16 @@ function prefillFromLead(lead) {
     if (activite) { document.getElementById('qActivite').value = activite; call.activite = activite; }
     if (statut) { preselectSingle('chipsStatut', statut, 'selected-oui'); call.statut = statut; }
   }
+  // Réponses de l'appel post-inscription
+  if (lead.entreprise) { preselectSingle('chipsEntreprise', lead.entreprise, 'selected-oui'); call.entreprise = lead.entreprise; }
+  const dispo = OPTIONS.dispo.find((o) => o.stored === lead.dispo_webi);
+  if (dispo) {
+    call.dispo = dispo.value;
+    preselectSingle('chipsDispo', dispo.value,
+      dispo.tone === 'orange' ? 'selected-orange' : dispo.tone === 'neutral' ? 'selected-neutral' : 'selected-oui');
+    if (isInscrit(lead) && dispo.value === 'non') document.getElementById('dispoReplay').classList.remove('is-hidden');
+    if (isInscrit(lead)) document.getElementById('bonusBlock').classList.remove('is-hidden');
+  }
   // Besoin déjà noté
   if (lead.objectif) { document.getElementById('qBesoin').value = lead.objectif; call.besoin = lead.objectif; }
   // Financement déjà détecté
@@ -610,10 +846,13 @@ function prefillFromLead(lead) {
   }
   // Rouvrir les étapes déjà travaillées
   const dejaTravaille = call.activite || call.besoin || call.statut || hasObjection
+    || call.dispo || call.entreprise
     || (lead.statut && lead.statut !== '📞 À appeler');
   if (dejaTravaille) {
     document.getElementById('step0').classList.add('done-step');
-    reveal('step1', true); reveal('step2'); reveal('step3'); reveal('step5');
+    reveal('step1', true); reveal('step2');
+    if (!isInscrit(lead)) reveal('step3'); // inscrit : pas d'étape « la formation correspond-elle ? »
+    reveal('step5');
     if (lead.statut === '🚫 Pas intéressé') preselectSingle('chipsIssue', 'non', 'selected-non');
     if (lead.statut === '🔄 À rappeler') preselectSingle('chipsIssue', 'rappel', 'selected-neutral');
     if (lead.statut === '🔄 À réinscrire') preselectSingle('chipsIssue', 'replay', 'selected-orange');
@@ -631,7 +870,9 @@ function renderFicheRecap(lead) {
   if (lead.statut && lead.statut !== '📞 À appeler') rows.push(['Statut', lead.statut]);
   if (lead.nb_tentatives) rows.push(['Tentatives', lead.nb_tentatives + ' appel' + (lead.nb_tentatives > 1 ? 's' : '')]);
   if (lead.situation_pro) rows.push(['Activité / statut', lead.situation_pro]);
+  if (lead.entreprise) rows.push(['A déjà une entreprise', lead.entreprise]);
   if (lead.objectif) rows.push(['Ce qu\'il cherche à régler', lead.objectif]);
+  if (lead.dispo_webi) rows.push(['Conférence (appel d\'inscription)', lead.dispo_webi]);
   if (lead.objection) rows.push(['Réserves exprimées', lead.objection]);
   // Champs de l'ancien script, conservés pour les fiches déjà travaillées
   if (lead.positifs) rows.push(['Ce qui a plu (ancien script)', lead.positifs]);
@@ -822,7 +1063,7 @@ function openLead(id) {
   document.getElementById('leadName').textContent = currentLead.nom;
   const wLabel = webiTypeOf(currentLead) === 'ia' ? '🤖 Webi IA' : '📱 Webi Réseaux sociaux';
   document.getElementById('leadMeta').textContent =
-    `${wLabel} · ${currentLead.webi === 'Présent' ? '🔥 présent' : '📭 absent'}` +
+    `${wLabel} · ${isInscrit(currentLead) ? '🆕 vient de s\'inscrire' : currentLead.webi === 'Présent' ? '🔥 présent' : '📭 absent'}` +
     ` · Score ${currentLead.score}/10 · ${call.nbTentatives} appel${call.nbTentatives > 1 ? 's' : ''} passé${call.nbTentatives > 1 ? 's' : ''}`;
 
   // Infos
@@ -848,11 +1089,26 @@ function openLead(id) {
   // que l'on ne redemande donc PAS pendant l'appel.
   const sp = speechesFor(currentLead);
   const present = currentLead.webi === 'Présent';
+  const insc = isInscrit(currentLead);
   document.getElementById('speechOuverture').innerHTML =
-    present ? sp.ouverturePresent(prenom) : sp.ouvertureAbsent(prenom);
-  document.getElementById('hintOuverture').innerHTML = present
+    insc ? sp.ouvertureInscrit(prenom) : present ? sp.ouverturePresent(prenom) : sp.ouvertureAbsent(prenom);
+  document.getElementById('hintOuverture').innerHTML = insc
+    ? 'Fiche <b>inscrite</b> — la conférence n\'a pas encore eu lieu. Appel court : trois questions, aucune vente.'
+    : present
     ? 'Fiche taguée <b>présent</b> — il a pu partir avant la présentation de la formation.'
     : 'Fiche taguée <b>absent</b> — il a pu regarder le replay depuis.';
+  // Inscrit : on remplace « ce qu'il a vu » par « sera-t-elle là ? » et le
+  // questionnement long par les trois questions. Le reste du script est inchangé.
+  const tog = (id, hide) => document.getElementById(id).classList.toggle('is-hidden', hide);
+  tog('vuBlock', insc); tog('dispoBlock', !insc);
+  tog('interetStd', insc); tog('interetInscrit', !insc);
+  tog('entrepriseBlock', !insc && !currentLead.entreprise);
+  tog('dispoReplay', true); tog('bonusBlock', true);
+  document.getElementById('speechBonus').innerHTML = sp.bonusInscrit();
+  document.getElementById('speechDispo').innerHTML = sp.dispoInscrit();
+  document.getElementById('speechReplayInscrit').innerHTML = sp.replayInscrit();
+  document.getElementById('speechQuestions').innerHTML = sp.questionsInscrit();
+  renderChipGroup('chipsIssue', insc ? OPTIONS.issueInscrit : OPTIONS.issue, { onSelect: onIssue });
   document.getElementById('speechVu').innerHTML = present ? sp.vuPresent() : sp.vuAbsent();
   document.getElementById('speechInteret').innerHTML = sp.interet();
   document.getElementById('speechDouleurs').innerHTML = '— ' + sp.douleurs;
@@ -861,8 +1117,8 @@ function openLead(id) {
   document.getElementById('speechRassurance').innerHTML = sp.rassurance();
   document.getElementById('speechPrixSiDemande').innerHTML = sp.prixSiDemande();
   document.getElementById('speechPreparation').innerHTML = sp.preparation();
-  document.getElementById('speechRdv').innerHTML = sp.rdv();
-  document.getElementById('speechSms').textContent = sp.sms(prenom);
+  document.getElementById('speechRdv').innerHTML = insc ? sp.rdvInscrit() : sp.rdv();
+  document.getElementById('speechSms').textContent = insc ? sp.smsInscrit(prenom) : sp.sms(prenom);
   fillIntentionSpeech();
   renderRelances();
   renderGardeFous();
@@ -890,6 +1146,21 @@ function openLead(id) {
   }, 1000);
 
   document.getElementById('mainArea').scrollTop = 0;
+}
+
+// « Fiche suivante » : enregistre, puis ouvre la prochaine fiche de la même
+// colonne (inscrits à rappeler, ou après-conférence) sans repasser par la liste.
+const vues = new Set();
+async function nextLead() {
+  if (!currentLead) return;
+  const id = currentLead.id;
+  vues.add(id);
+  flushAutosave();
+  renderLeads(); // recalcule l'ordre des deux colonnes
+  const file = isInscrit(currentLead) ? ordreNow : ordrePost;
+  const suivant = file.find((x) => x !== id && !vues.has(x));
+  if (!suivant) { vues.clear(); closeLead(); showToast('✅ Plus de fiche dans cette colonne'); return; }
+  openLead(suivant);
 }
 
 function closeLead() {
@@ -1011,8 +1282,15 @@ function buildResume() {
   if (!currentLead) return '';
   const l = [];
   const sujet = webiTypeOf(currentLead) === 'ia' ? 'conférence IA' : 'conférence réseaux sociaux';
-  l.push(`Appelé·e par Sylvie — ${sujet} (fiche taguée ${currentLead.webi.toLowerCase()}).`);
+  if (isInscrit(currentLead)) {
+    l.push(`Appelé·e par Sylvie juste après son inscription à la ${sujet} — conférence pas encore vue.`);
+  } else {
+    l.push(`Appelé·e par Sylvie — ${sujet} (fiche taguée ${currentLead.webi.toLowerCase()}).`);
+  }
   if (call.vu) l.push(`A vu : ${LBL_VU[call.vu]}.`);
+  if (call.entreprise) l.push(`A déjà une entreprise : ${call.entreprise.toLowerCase()}.`);
+  const dispoLbl = (OPTIONS.dispo.find((o) => o.value === call.dispo) || {}).stored;
+  if (dispoLbl) l.push(`Conférence à venir : ${dispoLbl}.`);
   const qui = [call.activite, call.statut].filter(Boolean).join(' · ');
   if (qui) l.push(`Activité : ${qui}.`);
   if (call.besoin) l.push(`Ce qu'il cherche à régler, dans ses mots : « ${call.besoin.trim()} »`);
@@ -1043,7 +1321,7 @@ function renderResume() {
   if (!box) return;
   const txt = buildResume();
   const step = document.getElementById('stepResume');
-  if (!txt || !call.vu) { if (step) step.classList.add('hidden'); return; }
+  if (!txt || !(call.vu || call.dispo)) { if (step) step.classList.add('hidden'); return; }
   box.textContent = txt;
   if (step) step.classList.remove('hidden');
 }
@@ -1097,6 +1375,8 @@ function renderAllChipGroups() {
   renderChipGroup('chipsRepondu', OPTIONS.repondu, { onSelect: onRepondu });
   renderChipGroup('chipsVu', OPTIONS.vu, { onSelect: onVu });
   renderChipGroup('chipsStatut', OPTIONS.statut, { onSelect: (v) => { call.statut = v; saveQualif(); } });
+  renderChipGroup('chipsDispo', OPTIONS.dispo, { onSelect: onDispo });
+  renderChipGroup('chipsEntreprise', OPTIONS.entreprise, { onSelect: (v) => { call.entreprise = v; saveQualif(); } });
   renderChipGroup('chipsIntention', OPTIONS.intention, { onSelect: onIntention });
   renderChipGroup('chipsEcheance', OPTIONS.echeance, { onSelect: (v) => { call.echeance = v; saveQualif(); } });
   renderChipGroup('chipsDecision', OPTIONS.decision, { onSelect: (v) => { call.decision = v; saveQualif(); } });
@@ -1199,6 +1479,21 @@ function onVu(val) {
   scheduleAutosave();
 }
 
+// Appel post-inscription : sera-t-elle là ? Trois questions, puis la suite.
+// Pas d'étape « la formation correspond-elle ? » : elle n'a encore rien vu.
+function onDispo(val) {
+  call.dispo = val;
+  const s1 = document.getElementById('step1');
+  s1.classList.remove('active-step'); s1.classList.add('done-step');
+  document.getElementById('dispoReplay').classList.toggle('is-hidden', val !== 'non');
+  document.getElementById('bonusBlock').classList.remove('is-hidden');
+  reveal('step2', true);
+  reveal('step5');
+  if (currentLead) currentLead.dispo_webi = (OPTIONS.dispo.find((o) => o.value === val) || {}).stored || '';
+  renderLeads();
+  saveQualif();
+}
+
 // La question d'intention dépend de ce qu'il a vu.
 function fillIntentionSpeech() {
   const sp = speechesFor(currentLead);
@@ -1256,6 +1551,10 @@ function onIssue(val) {
   } else if (val === 'rappel') {
     rappel.classList.remove('hidden');
     setStatut('🔄 À rappeler', '🔄 Reprise de contact notée');
+  } else if (val === 'conf') {
+    // Inscrit : rien de plus. La fiche reviendra d'elle-même dans « À appeler »
+    // après la conférence, avec ce que Sylvie vient de noter.
+    setStatut('📞 À appeler', '✔ Noté — on se retrouve à la conférence');
   } else {
     setStatut('🚫 Pas intéressé', '🚫 Pas de suite — on note pourquoi');
     showObjections(true);
@@ -1314,7 +1613,7 @@ async function resetFiche() {
   const id = currentLead.id;
   clearTimeout(autosaveTimer); autosaveTimer = null; // annule un autosave en attente
 
-  const vierge = { statut: '📞 À appeler', a_reserve: false, notes: '', manques: '', positifs: '', objectif: '', objection: '', nb_tentatives: 0 };
+  const vierge = { statut: '📞 À appeler', a_reserve: false, notes: '', manques: '', positifs: '', objectif: '', objection: '', nb_tentatives: 0, infos: '', entreprise: '', dispo_webi: '' };
   try {
     if (!demoMode) await api(`/api/leads/${id}/reset`, { method: 'POST' });
     const l = leads.find((x) => x.id === id);
@@ -1363,6 +1662,9 @@ function buildPayload() {
   // Le besoin, dans les mots de la personne → champ « Objectif déclaré »
   if (call.besoin) payload.objectif = call.besoin;
   if (call.financement) payload.financement = call.financement;
+  // Appel post-inscription : entreprise + présence à la conférence
+  const infos = buildInfos();
+  if (infos) payload.infos = infos;
   // Le résumé part vers noCRM au moment du booking (seul outil que lit Jordan),
   // pas dans Notion : on évite de dupliquer une information vivante.
   // Date de reprise de contact, si convenue

@@ -13,9 +13,10 @@
 // upsertWebiLead / archiveSetterLead sont idempotents (matching par email) :
 // relancer la synchro ne crée jamais de doublon.
 // ─────────────────────────────────────────────────────────────────────────
-const { TAGS_PRESENT_WEBI, TAGS_ABSENT_WEBI, TAGS_RESA_CALL } = require('../config');
+const { TAGS_PRESENT_WEBI, TAGS_ABSENT_WEBI, TAGS_RESA_CALL, TAGS_INSCRIT_WEBI } = require('../config');
 const systemeio = require('./systemeio');
 const notion = require('./notion');
+const nocrm = require('./nocrm');
 
 function cutoffISO(days) {
   return new Date(Date.now() - Number(days) * 86_400_000).toISOString();
@@ -44,6 +45,7 @@ function normalize(c) {
     first_name: systemeio.field(c, 'first_name'),
     last_name: systemeio.field(c, 'surname'),
     phone: systemeio.field(c, 'phone_number'),
+    registered_at: c.registeredAt || null,
   };
 }
 
@@ -123,7 +125,15 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
   let okUpserts = 0, inchangees = 0, okArchives = 0, errors = 0;
   for (const a of actions) {
     try {
-      if (a.kind === 'resa') { await notion.archiveSetterLead(a.email); okArchives++; }
+      if (a.kind === 'resa') {
+        const lead = await notion.archiveSetterLead(a.email);
+        okArchives++;
+        // Réservation faite sans Sylvie : ses notes éventuelles rejoignent le lead
+        // noCRM de Jordan. Sans effet si rien n'a changé ou s'il n'y a pas de lead.
+        if (lead && nocrm.isReady() && (lead.notes || lead.infos || lead.objectif)) {
+          await nocrm.syncNotes(lead).catch((e) => console.error(`⚠️ noCRM (notes) ${a.email} : ${e.message}`));
+        }
+      }
       else if (await notion.upsertWebiLead(normalize(a.contact), a.kind, reactivate, a.webiType)) okUpserts++;
       else inchangees++;
     } catch (e) {
@@ -138,6 +148,83 @@ async function syncOnce({ since, until, windowDays, dryRun = false, reactivate =
     (errors ? `, ${errors} erreurs` : '') + ` (depuis ${registeredAfter.slice(0, 10)})`
   );
   return summary;
+}
+
+// ── Inscrits : passe légère et fréquente ──────────────────────────────────
+// Objectif : qu'une personne qui vient de s'inscrire à une conférence arrive
+// dans l'onglet « 🆕 Inscrits » en quelques minutes, pour que Sylvie la rappelle
+// à chaud. On ne regarde que les inscriptions récentes (fenêtre glissante), et
+// on ne CRÉE que les fiches inconnues : aucune fiche existante n'est modifiée.
+const APRES_WEBI = new Set(
+  [...TAGS_PRESENT_WEBI, ...TAGS_ABSENT_WEBI, ...TAGS_RESA_CALL].map((t) => t.id)
+);
+
+async function syncInscrits({ windowHours, dryRun = false } = {}) {
+  if (!systemeio.isReady()) throw new Error('System.io non configuré (SYSTEMEIO_MCP_KEY manquant)');
+  if (!notion.isReady()) throw new Error('Notion non configuré (NOTION_TOKEN / base manquants)');
+
+  const hours = Number(windowHours || process.env.SYSTEMEIO_INSCRIT_WINDOW_HOURS || 48);
+  const registeredAfter = new Date(Date.now() - hours * 3_600_000).toISOString();
+  const found = await collect(TAGS_INSCRIT_WEBI, registeredAfter);
+  const known = await notion.knownEmails(); // cache mémoire → aucun appel Notion
+
+  let dejaConnus = 0, apresWebi = 0, sansTel = 0;
+  const nouveaux = [];
+  for (const [email, c] of found) {
+    if (known.has(email)) { dejaConnus++; continue; }
+    // Déjà tagué présent / absent / résa : sa conférence est passée, la synchro
+    // habituelle s'en charge — ce n'est plus un « inscrit à rappeler ».
+    if ((c.tags || []).some((t) => APRES_WEBI.has(Number(t.id)))) { apresWebi++; continue; }
+    if (!hasPhone(c)) { sansTel++; continue; }
+    nouveaux.push({ email, contact: c, webiType: c._webiType });
+  }
+
+  const summary = {
+    windowHours: hours, found: found.size, dejaConnus, apresWebi, sansTel,
+    nouveaux: nouveaux.length, dryRun,
+  };
+  if (dryRun) {
+    summary.sample = nouveaux.slice(0, 12).map((a) => `${a.webiType || '?'} ${a.email}`);
+    return summary;
+  }
+
+  let crees = 0, errors = 0;
+  for (const a of nouveaux) {
+    try {
+      if (await notion.upsertWebiLead(normalize(a.contact), 'inscrit', false, a.webiType)) crees++;
+    } catch (e) {
+      errors++;
+      console.error(`⚠️ Sync inscrit ${a.email} : ${e.message}`);
+    }
+    await new Promise((r) => setTimeout(r, 120));
+  }
+  summary.applied = { crees, errors };
+  if (crees || errors) {
+    console.log(`🆕 Inscrits System.io→Notion : ${crees} nouvelle(s) fiche(s)` + (errors ? `, ${errors} erreur(s)` : ''));
+  }
+  return summary;
+}
+
+// Passe « inscrits » toutes les N minutes (défaut 5). Coupée si
+// SYSTEMEIO_INSCRIT_SYNC_ENABLED=false. Une passe ne chevauche jamais la suivante.
+function startInscritScheduler() {
+  if (String(process.env.SYSTEMEIO_INSCRIT_SYNC_ENABLED).toLowerCase() === 'false') {
+    console.log('⏸️  Passe « inscrits » désactivée (SYSTEMEIO_INSCRIT_SYNC_ENABLED=false).');
+    return null;
+  }
+  const minutes = Math.max(1, Number(process.env.SYSTEMEIO_INSCRIT_POLL_MIN || 5));
+  let running = false;
+  const run = async () => {
+    if (running) return;
+    running = true;
+    try { await syncInscrits({}); }
+    catch (e) { console.error('Sync inscrits :', e.message); }
+    finally { running = false; }
+  };
+  setTimeout(run, 45_000); // après la passe initiale et le préchauffage du cache
+  setInterval(run, minutes * 60_000);
+  console.log(`▶️  Passe « inscrits » : toutes les ${minutes} min (inscriptions des ${process.env.SYSTEMEIO_INSCRIT_WINDOW_HOURS || 48} dernières heures).`);
+  return true;
 }
 
 // Millisecondes jusqu'au prochain HH:00 heure de Paris (gère l'heure d'été
@@ -188,6 +275,7 @@ function startScheduler() {
     return wait;
   };
   const waits = hours.map(armAt);
+  startInscritScheduler();
   const nextH = waits.length ? Math.round(Math.min(...waits) / 360000) / 10 : '?';
   console.log(
     `▶️  Synchro System.io→Notion : ${hours.length} passage(s)/jour ` +
@@ -196,4 +284,4 @@ function startScheduler() {
   return true;
 }
 
-module.exports = { syncOnce, startScheduler };
+module.exports = { syncOnce, syncInscrits, startScheduler };

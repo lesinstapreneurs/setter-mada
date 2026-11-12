@@ -40,7 +40,14 @@ const F = {
   positifs: 'Points positifs',      // rich_text
   objection: 'Contenu réponse',     // rich_text : ce qui a été dit en cas de refus
   archive: 'Archivé setter',        // checkbox : sorti de la file active, gardé en archive
+  // Appel post-inscription (avant la conférence) : « a déjà une entreprise ? »
+  // et « sera là à la conférence ? ». Champ texte existant, inutilisé jusque-là.
+  infos: 'Infos complémentaires',   // rich_text : « Entreprise : Oui · Conférence : sera présent·e »
 };
+
+const PR_PRESENT = '✅ Présent';
+const PR_ABSENT = '❌ Absent';
+const PR_INSCRIT = '⏳ À venir';   // inscrit, conférence pas encore passée
 
 // Téléphone exploitable ? (au moins 8 chiffres) — on n'appelle pas les contacts
 // sans numéro ou au numéro manifestement erroné.
@@ -114,9 +121,13 @@ async function refreshPages() {
 
 // Toutes les fiches. Cache chaud → instantané ; cache périmé → renvoie le cache
 // ET rafraîchit en fond ; cache vide (démarrage) → attend la requête.
-async function allPages() {
+// maxAgeMs : âge toléré avant de relancer une lecture complète. Les lectures de
+// fond (inscrits relus chaque minute, passe System.io) passent une tolérance
+// plus large pour ne pas relire toute la base en boucle ; une écriture remet de
+// toute façon l'âge à zéro (touchLeadsCache) et force la relecture.
+async function allPages(maxAgeMs = PAGES_TTL_MS) {
   if (!_pages) return refreshPages();
-  if (Date.now() - _pagesAt >= PAGES_TTL_MS && !_pagesRefreshing) {
+  if (Date.now() - _pagesAt >= maxAgeMs && !_pagesRefreshing) {
     refreshPages().catch((e) => console.error('⚠️ Cache fiches (refresh) :', e.message));
   }
   return _pages;
@@ -132,10 +143,14 @@ function warmupLeadsCache() {
     .catch((e) => console.error('⚠️ Cache fiches (warmup) :', e.message));
 }
 
-// Fiche « appelable » : présente ou absente (≠ à venir / inconnu).
+// Fiche « appelable » : présente, absente, ou inscrite avant sa conférence
+// (≠ inconnu).
+function isInscritPage(page) {
+  return sel(page.properties?.[F.presence]).includes('À venir');
+}
 function isPresentAbsentPage(page) {
   const pr = sel(page.properties?.[F.presence]);
-  return pr.includes('Présent') || pr.includes('Absent');
+  return pr.includes('Présent') || pr.includes('Absent') || pr.includes('À venir');
 }
 
 // ── Lecture de propriétés ────────────────────────────────────────────────
@@ -180,11 +195,22 @@ function pageToLead(page) {
   const p = page.properties || {};
   const prenom = rt(p[F.prenom]) || t(p[F.nom]);
   const presence = sel(p[F.presence]);
-  const webi = presence.includes('Présent') ? 'Présent' : presence.includes('Absent') ? 'Absent' : 'Présent';
+  const webi = presence.includes('Présent') ? 'Présent'
+    : presence.includes('Absent') ? 'Absent'
+    : presence.includes('À venir') ? 'Inscrit'
+    : 'Présent';
+  // Réponses de l'appel post-inscription, rangées dans « Infos complémentaires »
+  const infos = rt(p[F.infos]);
+  const infoOf = (label) => {
+    const part = infos.split(' · ').find((x) => x.startsWith(label + ' : '));
+    return part ? part.slice(label.length + 3).trim() : '';
+  };
   // Webinaire d'origine : 'ia' si le marqueur « Tag SIO » contient « IA »,
   // sinon 'social' (réseaux sociaux du lundi — défaut rétro-compatible).
   const typeWebi = rt(p[F.tagSio]).includes('IA') ? 'ia' : 'social';
   const dateInscr = date(p[F.dateInscr]) || (page.created_time || '').slice(0, 10);
+  // Instant précis de l'inscription (chrono « il y a 12 min » de l'onglet Inscrits)
+  const inscritAt = dateInscr.includes('T') ? dateInscr : (page.created_time || dateInscr);
   const gisement = sel(p[F.gisement]);
   const niveau = sel(p[F.niveau]);
   const situation = rt(p[F.situation]);
@@ -215,6 +241,10 @@ function pageToLead(page) {
     briefing,
     nb_tentatives: num(p[F.nbTent]) || 0,
     date_ajout: dateInscr,
+    inscrit_at: inscritAt,
+    infos,
+    entreprise: infoOf('Entreprise'),
+    dispo_webi: infoOf('Conférence'),
     date_rdv: date(p[F.dateRappel]) || date(p[F.dateResa]),
     note_webi: num(p[F.noteWebi]),
     financement: sel(p[F.financement]) || '',
@@ -251,6 +281,27 @@ async function getSetterLeads() {
   return leads;
 }
 
+// Les seuls inscrits (conférence à venir) — petite liste, interrogée chaque
+// minute par l'interface pour faire apparaître les nouvelles inscriptions.
+const FOND_MAX_AGE_MS = 10 * 60_000;
+
+async function getInscritLeads() {
+  return (await allPages(FOND_MAX_AGE_MS))
+    .filter((pg) => isInscritPage(pg) && !check(pg.properties?.[F.archive]))
+    .map(pageToLead)
+    .filter((l) => validPhone(l.telephone));
+}
+
+// Emails déjà présents dans la base (lu dans le cache, aucun appel Notion).
+async function knownEmails() {
+  const set = new Set();
+  for (const pg of await allPages(FOND_MAX_AGE_MS)) {
+    const m = mail(pg.properties?.[F.email]).toLowerCase();
+    if (m) set.add(m);
+  }
+  return set;
+}
+
 // Renvoie { email } (depuis la réponse Notion) pour permettre au routeur de
 // répercuter l'action côté System.io. Renvoie null si rien n'a été modifié.
 async function updateSetterLead(pageId, body) {
@@ -264,6 +315,7 @@ async function updateSetterLead(pageId, body) {
   if ('date_rdv' in body) props[F.dateRappel] = wDate(body.date_rdv);
   if ('situation_pro' in body) props[F.situation] = wRt(body.situation_pro);
   if ('objectif' in body) props[F.objectif] = wRt(body.objectif);
+  if ('infos' in body) props[F.infos] = wRt(body.infos);
   if (!Object.keys(props).length) return null;
   const page = await notionFetch(`/pages/${pageId}`, 'PATCH', { properties: props });
   touchLeadsCache();
@@ -271,6 +323,11 @@ async function updateSetterLead(pageId, body) {
     email: mail(page.properties?.[F.email]),
     type_webi: rt(page.properties?.[F.tagSio]).includes('IA') ? 'ia' : 'social',
   };
+}
+
+// Fiche complète relue dans Notion (pour recopier les notes dans noCRM).
+async function getLeadById(pageId) {
+  return pageToLead(await notionFetch(`/pages/${pageId}`));
 }
 
 // RDV confirmé par la setter → sort de la file (A réservé un call = ✔)
@@ -304,6 +361,7 @@ async function resetSetterLead(pageId) {
       [F.positifs]: wRt(''),
       [F.objectif]: wRt(''),
       [F.objection]: wRt(''),
+      [F.infos]: wRt(''),
       [F.nbTent]: wNum(null),
       [F.dateRappel]: wDate(null),
       [F.dateResa]: wDate(null),
@@ -318,7 +376,11 @@ async function getStats() {
   const all = pages.map(pageToLead);
   // Stats sur la population RÉELLEMENT APPELABLE (téléphone valide) et NON
   // archivée — cohérent avec la file active affichée à la setter.
-  const base = all.filter((l) => validPhone(l.telephone) && !l.archived);
+  // Les inscrits (conférence à venir) sont comptés à part : ils rejoignent les
+  // présents/absents après leur webinaire, sans gonfler le taux d'ici là.
+  const appelables = all.filter((l) => validPhone(l.telephone) && !l.archived);
+  const base = appelables.filter((l) => l.webi !== 'Inscrit');
+  const inscrits = appelables.filter((l) => l.webi === 'Inscrit');
   // RDV booké RÉEL = uniquement setter (app) ou Calendly (plateforme) → statut booké.
   // Les « Résa call » System.io (a_reserve sans statut booké) ne comptent PAS.
   const estBooke = (l) => l.statut === ST_BOOKE;
@@ -346,6 +408,8 @@ async function getStats() {
     total_leads: base.length,
     presents_webi: actifs.filter((l) => l.webi === 'Présent').length,
     absents_webi: actifs.filter((l) => l.webi === 'Absent').length,
+    inscrits_webi: inscrits.length,
+    inscrits_a_appeler: inscrits.filter((l) => (l.statut || ST_APPELER) === ST_APPELER && !l.dispo_webi).length,
     rdv_bookes: bookes.length,
     rdv_today: bookes.filter((l) => (l._edited || '').slice(0, 10) === todayStr).length,
     taux_conversion: base.length ? Math.round((bookes.length / base.length) * 1000) / 10 : 0,
@@ -371,32 +435,57 @@ function webiMark(webiType) {
 async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = null) {
   const email = String(sioContact.email || '').trim();
   if (!email) return;
-  const presence = kind === 'present' ? '✅ Présent' : '❌ Absent';
+  const inscrit = kind === 'inscrit';
+  const presence = kind === 'present' ? PR_PRESENT : inscrit ? PR_INSCRIT : PR_ABSENT;
+  // Inscription : on garde l'instant précis (chrono de rappel), pas seulement le jour.
+  const inscritLe = () => {
+    const d = new Date(sioContact.registered_at || Date.now());
+    return (Number.isNaN(d.getTime()) ? new Date() : d).toISOString();
+  };
   const existing = await findPageByEmail(email);
   if (existing) {
-    if (sel(existing.properties?.[F.statut]) === ST_BOOKE) return false; // garde le RDV booké
+    const statut = sel(existing.properties?.[F.statut]);
+    if (statut === ST_BOOKE) return false; // garde le RDV booké
     const props = {};
-    // Seulement si la présence a VRAIMENT changé. Réécrire à l'identique
-    // coûtait 3 139 écritures Notion par passe, deux fois par jour, et faisait
-    // repasser toute la base pour « modifiée » — donc un rafraîchissement
-    // complet du cache derrière chaque synchro.
-    if (sel(existing.properties?.[F.presence]) !== presence) props[F.presence] = wSel(presence);
-    // Renseigne le webinaire d'origine s'il n'est pas encore posé (ne réécrit
-    // jamais une valeur existante → n'écrase pas ce que Make aurait mis).
-    if (!rt(existing.properties?.[F.tagSio])) props[F.tagSio] = wRt(webiMark(webiType));
-    // Désarchivage UNIQUEMENT si reactivate=true (chargement explicite d'un
-    // nouveau lot) — jamais dans la synchro auto, sinon elle ressortirait tout.
-    if (reactivate && check(existing.properties?.[F.archive])) {
-      props[F.archive] = wCheck(false);
-      props[F.statut] = wSel(ST_APPELER);
-      props[F.aReserve] = wCheck(false);
+    if (inscrit) {
+      // Fiche déjà connue. La passe automatique n'y touche JAMAIS (elle ne fait
+      // que créer les nouveaux inscrits). Seule une nouvelle inscription reçue
+      // en direct (webhook → reactivate=true) remet la personne dans l'onglet
+      // « Inscrits » — sauf si elle a dit non.
+      if (!reactivate || statut === ST_PAS_INT) return false;
+      if (sel(existing.properties?.[F.presence]) === PR_INSCRIT) return false; // déjà dedans
+      props[F.presence] = wSel(PR_INSCRIT);
+      props[F.dateInscr] = wDate(inscritLe());
+      props[F.tagSio] = wRt(webiMark(webiType)); // elle peut s'inscrire à l'autre conférence
+      props[F.infos] = wRt('');                  // nouvel appel post-inscription à faire
+      if (check(existing.properties?.[F.archive])) {
+        props[F.archive] = wCheck(false);
+        props[F.statut] = wSel(ST_APPELER);
+        props[F.aReserve] = wCheck(false);
+      }
+    } else {
+      // Seulement si la présence a VRAIMENT changé. Réécrire à l'identique
+      // coûtait 3 139 écritures Notion par passe, deux fois par jour, et faisait
+      // repasser toute la base pour « modifiée » — donc un rafraîchissement
+      // complet du cache derrière chaque synchro.
+      if (sel(existing.properties?.[F.presence]) !== presence) props[F.presence] = wSel(presence);
+      // Renseigne le webinaire d'origine s'il n'est pas encore posé (ne réécrit
+      // jamais une valeur existante → n'écrase pas ce que Make aurait mis).
+      if (!rt(existing.properties?.[F.tagSio])) props[F.tagSio] = wRt(webiMark(webiType));
+      // Désarchivage UNIQUEMENT si reactivate=true (chargement explicite d'un
+      // nouveau lot) — jamais dans la synchro auto, sinon elle ressortirait tout.
+      if (reactivate && check(existing.properties?.[F.archive])) {
+        props[F.archive] = wCheck(false);
+        props[F.statut] = wSel(ST_APPELER);
+        props[F.aReserve] = wCheck(false);
+      }
     }
     // Rien à changer : on ne touche pas à la page.
     if (!Object.keys(props).length) return false;
     await notionFetch(`/pages/${existing.id}`, 'PATCH', { properties: props });
   } else {
     const nom = [sioContact.first_name, sioContact.last_name].filter(Boolean).join(' ').trim() || email;
-    await notionFetch('/pages', 'POST', {
+    const page = await notionFetch('/pages', 'POST', {
       parent: { database_id: dbId },
       properties: {
         [F.nom]: wTitle(nom),
@@ -406,10 +495,13 @@ async function upsertWebiLead(sioContact, kind, reactivate = false, webiType = n
         [F.presence]: wSel(presence),
         [F.tagSio]: wRt(webiMark(webiType)), // webinaire d'origine
         [F.statut]: wSel(ST_APPELER),
-        [F.dateInscr]: wDate(today()),
+        [F.dateInscr]: wDate(inscrit ? inscritLe() : today()),
         [F.archive]: wCheck(false), // nouveau lead → file active
       },
     });
+    // Nouvel inscrit : on l'ajoute au cache au lieu de l'invalider → la fiche
+    // apparaît tout de suite, sans relire les 6 000 fiches de la base.
+    if (inscrit && _pages && page?.id) { _pages.push(page); return true; }
   }
   touchLeadsCache();
   return true;
@@ -472,14 +564,15 @@ async function archiveReservedCalls() {
 // (bookSetterLead) et le webhook Calendly (markBookedByEmail) comptent.
 async function archiveSetterLead(email) {
   const page = await findPageByEmail(email);
-  if (!page) return;
-  await notionFetch(`/pages/${page.id}`, 'PATCH', {
+  if (!page) return null;
+  const updated = await notionFetch(`/pages/${page.id}`, 'PATCH', {
     properties: {
       [F.aReserve]: wCheck(true),
       [F.gisement]: wSel('🟢 A réservé un call'),
     },
   });
   touchLeadsCache();
+  return pageToLead(updated); // pour recopier les notes de Sylvie dans noCRM
 }
 
 // Webhook Calendly : RDV pris → marquer booké. Renvoie la fiche (pour noCRM).
@@ -502,6 +595,9 @@ module.exports = {
   ensureSetterDatabase,
   isReady,
   getSetterLeads,
+  getInscritLeads,
+  getLeadById,
+  knownEmails,
   updateSetterLead,
   bookSetterLead,
   resetSetterLead,
