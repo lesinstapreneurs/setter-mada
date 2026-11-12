@@ -28,21 +28,33 @@ function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'soc
    les inscrits + campagnes Systeme.io). À mettre à jour ici s'ils changent.
    Affiché en haut de chaque fiche, pour que Sylvie l'ait sous les yeux.   */
 const EXPEDITEUR = 'Les Instapreneurs · contact@instapreneurpro.fr';
+// Liens des cadeaux (fournis par Stéphane le 12/11/2026) — Sylvie peut les
+// copier d'un clic pour les renvoyer à quelqu'un qui ne les retrouve pas.
+const CADEAUX = {
+  regles: ['Les 10 règles d\'or (PDF)', 'https://www.dropbox.com/scl/fi/teoqkj6f0uy7p0ma6m4iq/LM-10-R-gles-d-OR-A4.pdf?rlkey=q1qaynr8096qsu1uiymak3hw3&dl=0'],
+  mindset: ['Le Mindset gagnant (PDF)', 'https://www.dropbox.com/scl/fi/sq2wvfjb3hdapt2bwcj01/Mindset-Pr-Conf-rence.pdf?rlkey=c6hzent57p9up0g1r5umw6zij&dl=0'],
+  quisuisje: ['Qui suis-je ? (vidéo)', 'https://vimeo.com/901687016/0abf35ffe9?share=copy'],
+  identite: ['Identité forte (PDF)', 'https://www.dropbox.com/scl/fi/1ptsdladjbhxe82lij02r/Identit-visuelle-pr-webi.pdf?rlkey=iciq22rly9e1p51k64t6w4lrr&dl=0'],
+  idees: ['50 idées de posts (PDF)', 'https://www.dropbox.com/scl/fi/ba2lkzl8reg0ik9qcue8r/50-id-es-pr-webi.pdf?rlkey=tfxz4g3x8xp9a33ldgxfktt0z&dl=0'],
+  carnet: ['Carnet de notes + 5 astuces Instagram (PDF)', 'https://www.dropbox.com/scl/fi/c6jsjeouifsobm2agvuwz/carnet-de-notes-pr-webi.pdf?rlkey=t4yvm5orl8gt8zdz04f2whhpw&dl=0'],
+  glossaire: ['Glossaire IA — 15 mots clés (PDF)', 'https://drive.google.com/file/d/1MZanjV0naSnqWFiNqamRzK_psaUPgbyz/view?usp=share_link'],
+  audit: ['Audit IA Express (PDF)', 'https://drive.google.com/file/d/1qEdSfI8TrIB9Ow0CONB65yr6aM8Vu3wx/view?usp=share_link'],
+};
 const MAILS = {
   social: [
-    { quand: 'À l\'inscription', quoi: '« Votre place est confirmée 🎁 (et un petit cadeau) » : le lien de la conférence + <b>« Les 10 règles d\'or »</b> (PDF). Capucine y demande aussi de répondre avec son secteur d\'activité.' },
-    { quand: 'Vendredi 20h', quoi: '« Ce que font différemment les entrepreneurs qui obtiennent des résultats sur Instagram » : le <b>guide introspectif « Qui suis-je ? »</b>.' },
-    { quand: 'Samedi 11h', quoi: '« Sophie avait 600 abonnés et aucun client… » : le <b>guide « Identité forte »</b> pour poser son univers visuel.' },
-    { quand: 'Dimanche 19h', quoi: '« Demain soir 20h — vous êtes toujours là ? » : la <b>liste d\'idées de posts</b> de Capucine + les liens vers les bonus précédents (« Qui suis-je ? », <b>« Le Mindset gagnant »</b>, « Identité forte »).' },
-    { quand: 'Lundi 10h', quoi: '« Préparez-vous pour ce soir ! Surprise 🎁 » : le <b>carnet de notes + 5 astuces incontournables pour Instagram</b>.' },
+    { quand: 'À l\'inscription', quoi: '« Votre place est confirmée 🎁 (et un petit cadeau) » : le lien de la conférence + <b>« Les 10 règles d\'or »</b>. Capucine y demande aussi de répondre avec son secteur d\'activité.', liens: ['regles'] },
+    { quand: 'Vendredi 20h', quoi: '« Ce que font différemment les entrepreneurs qui obtiennent des résultats sur Instagram » : un <b>guide introspectif</b> pour prendre de la hauteur sur sa pratique.', liens: ['mindset'] },
+    { quand: 'Samedi 11h', quoi: '« Sophie avait 600 abonnés et aucun client… » : le guide <b>« Identité forte »</b> pour poser son univers visuel.', liens: ['identite'] },
+    { quand: 'Dimanche 19h', quoi: '« Demain soir 20h — vous êtes toujours là ? » : les <b>50 idées de posts</b> + les liens vers les bonus précédents, dont la vidéo « Qui suis-je ? ».', liens: ['idees', 'quisuisje'] },
+    { quand: 'Lundi 10h', quoi: '« Préparez-vous pour ce soir ! Surprise 🎁 » : le <b>carnet de notes + 5 astuces incontournables pour Instagram</b>.', liens: ['carnet'] },
     { quand: 'Lundi soir', quoi: 'Rappels avec le lien : 1 h avant (« Dans 1 heure — le lien est ici ⏳ ») et à 19h45.' },
     { quand: 'Après, si présent·e', quoi: 'Lundi 21h30 : le récap de la méthode ICCP et le lien pour réserver l\'appel.' },
     { quand: 'Après, si absent·e', quoi: 'Le lien du replay.' },
-    { quand: 'Inscrite tard ?', quoi: 'Les e-mails partent à jour fixe : une personne inscrite le week-end ne reçoit pas ceux d\'avant. L\'e-mail du dimanche redonne les liens des bonus.' },
+    { quand: 'Inscrite tard ?', quoi: 'Les e-mails partent à jour fixe : une personne inscrite le week-end ne reçoit pas ceux d\'avant. Vous pouvez lui renvoyer les liens ci-dessus.' },
   ],
   ia: [
-    { quand: 'À l\'inscription', quoi: '« Vous êtes inscrit(e) ✅ (et voici votre 1er cadeau) » : le lien de la conférence + le <b>Glossaire IA — les 15 mots clés</b> expliqués simplement.' },
-    { quand: 'Mardi 10h', quoi: '« 5 minutes pour découvrir ce que l\'IA peut faire pour vous (+ Cadeau 🎁) » : l\'<b>Audit IA Express</b>, un PDF à remplir pour repérer les tâches que l\'IA peut prendre en charge. Il sert pendant la conférence.' },
+    { quand: 'À l\'inscription', quoi: '« Vous êtes inscrit(e) ✅ (et voici votre 1er cadeau) » : le lien de la conférence + le <b>Glossaire IA</b>, les 15 mots clés expliqués simplement.', liens: ['glossaire'] },
+    { quand: 'Mardi 10h', quoi: '« 5 minutes pour découvrir ce que l\'IA peut faire pour vous (+ Cadeau 🎁) » : l\'<b>Audit IA Express</b>, à remplir pour repérer les tâches que l\'IA peut prendre en charge. Il sert pendant la conférence.', liens: ['audit'] },
     { quand: 'Mercredi 10h', quoi: '« C\'est ce soir ! Préparez-vous pour 20h 🚀 » : les rappels pratiques et le lien.' },
     { quand: 'Mercredi soir', quoi: 'Rappels avec le lien : 1 h avant et à 19h45.' },
     { quand: 'Pendant la conférence', quoi: 'Une <b>surprise réservée aux participants en direct</b>.' },
@@ -50,6 +62,12 @@ const MAILS = {
     { quand: 'Après, si absent·e', quoi: 'Le replay, disponible jusqu\'au dimanche.' },
   ],
 };
+// Petit lien « ouvrir + copier » pour un cadeau
+function cadeauLink(key) {
+  const [label, url] = CADEAUX[key];
+  return `<span class="cadeau"><a href="${esc(url)}" target="_blank" rel="noopener">📎 ${esc(label)}</a>` +
+    `<button class="res-copy" title="Copier le lien" onclick="copyText(${esc(JSON.stringify(url))}, this)">📋</button></span>`;
+}
 
 /* ── Trames de conversation ────────────────────────────────────────────
    Ce ne sont PAS des textes à lire mot à mot : ce sont des repères.
@@ -951,7 +969,8 @@ function renderRessources(lead) {
   rows.push(
     `<details class="mails-note" open><summary>🎁 Ce qu'elle reçoit par e-mail — ${L.label}</summary>` +
     MAILS[webiTypeOf(lead)].map((m) =>
-      `<div class="mails-row"><span class="mails-quand">${m.quand}</span><span class="mails-quoi">${m.quoi}</span></div>`).join('') +
+      `<div class="mails-row"><span class="mails-quand">${m.quand}</span><span class="mails-quoi">${m.quoi}` +
+      `${m.liens ? '<span class="cadeaux">' + m.liens.map(cadeauLink).join('') + '</span>' : ''}</span></div>`).join('') +
     `<div class="mails-exp">Expéditeur : <b>${EXPEDITEUR}</b> — c'est l'adresse à ajouter aux contacts. ` +
     `À regarder aussi dans <b>Spam</b> et <b>Promotions</b>.</div></details>`
   );
