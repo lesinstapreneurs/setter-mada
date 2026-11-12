@@ -22,6 +22,25 @@ const LINKS = {
 };
 function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'social'; }
 
+/* ── Ce que la personne reçoit par e-mail, par conférence ──────────────
+   Relevé dans Systeme.io le 12/11/2026 (campagnes « Email de bienvenue » et
+   « Emails post webi »). À mettre à jour ici si les e-mails changent.
+   Affiché en haut de chaque fiche, pour que Sylvie l'ait sous les yeux.   */
+const EXPEDITEUR = 'Les Instapreneurs · contact@instapreneurpro.fr';
+const MAILS = {
+  social: [
+    { quand: 'À l\'inscription', quoi: 'E-mail « ✅ Vous êtes inscrit (et voici votre 1er cadeau 🎁) » : le lien de la conférence + le bonus <b>« Les 10 règles d\'or »</b> (PDF à télécharger) pour poser des bases solides sur les réseaux sociaux.' },
+    { quand: 'Pendant la conférence', quoi: 'Une <b>surprise réservée aux participants en direct</b> — elle n\'est pas envoyée avec le replay.' },
+    { quand: 'Après, si présent·e', quoi: 'Lundi 21h30 : le récap de la méthode ICCP et le lien pour réserver l\'appel.' },
+    { quand: 'Après, si absent·e', quoi: 'Le lien du replay.' },
+  ],
+  ia: [
+    { quand: 'À l\'inscription', quoi: 'E-mail de confirmation avec le lien de la conférence. <b>Aucun bonus à télécharger n\'est paramétré dans Systeme.io pour la conférence IA</b> — ne pas en promettre.' },
+    { quand: 'Après, si présent·e', quoi: 'Mercredi 21h30 : le récap de la méthode AC2A (Auditer, Créer, Analyser, Automatiser), le replay et le lien pour réserver l\'appel.' },
+    { quand: 'Après, si absent·e', quoi: 'Le replay, disponible jusqu\'au dimanche.' },
+  ],
+};
+
 /* ── Trames de conversation ────────────────────────────────────────────
    Ce ne sont PAS des textes à lire mot à mot : ce sont des repères.
    Sylvie formule à sa façon, vouvoiement obligatoire.
@@ -63,11 +82,6 @@ const SP_COMMON = {
     `— Pour que je vous oriente au mieux : <strong>vous faites quoi aujourd'hui</strong> ? ` +
     `Vous avez <strong>déjà votre entreprise</strong>, ou c'est encore un projet ? ` +
     `Et <strong>qu'est-ce que vous aimeriez retirer</strong> de cette conférence ?`,
-  // Les bonus partent par e-mail : on prévient, sinon ils dorment dans les spams.
-  bonusInscrit: () =>
-    `— Notez aussi : vous allez recevoir <strong>vos bonus par e-mail</strong>. ` +
-    `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
-    `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
   // À ne proposer QUE si elle le demande ou si elle est clairement déterminée.
   rdvInscrit: () =>
     `— Si vous préférez ne pas attendre la conférence, vous pouvez échanger directement avec ` +
@@ -100,10 +114,16 @@ const SPEECHES = {
       `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
       `conférence</strong> : vous le regardez quand vous voulez. Et vous restez inscrit·e à celle ` +
       `de lundi, si finalement vous vous libérez.`,
+    // Les e-mails partent tout seuls : on prévient, sinon ils dorment dans les spams.
+    bonusInscrit: () =>
+      `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong> et un ` +
+      `<strong>premier cadeau, nos « 10 règles d'or »</strong> pour bien démarrer sur les réseaux sociaux. ` +
+      `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
+      `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
       `Bienvenue : vous êtes bien inscrit·e à notre conférence sur Instagram, lundi à 20h.\n` +
-      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
+      `Votre lien et votre cadeau (nos 10 règles d'or) sont partis par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
       `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
       `Dites-moi quand je peux vous rappeler 🙂`,
 
@@ -161,10 +181,15 @@ const SPEECHES = {
       `— Aucun souci. Je vous envoie tout de suite par e-mail <strong>le replay de la dernière ` +
       `conférence</strong> : vous le regardez quand vous voulez. Et vous restez inscrit·e à celle ` +
       `de mercredi, si finalement vous vous libérez.`,
+    bonusInscrit: () =>
+      `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong>, et vous ` +
+      `recevrez le récapitulatif après la conférence. Si vous ne les voyez pas, regardez bien dans vos ` +
+      `onglets <strong>Spam</strong> et <strong>Promotions</strong>. Et pour ne rien manquer, ` +
+      `<strong>ajoutez-nous à vos contacts</strong>.`,
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
       `Bienvenue : vous êtes bien inscrit·e à notre conférence sur l'intelligence artificielle, mercredi à 20h.\n` +
-      `Vos bonus arrivent par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
+      `Votre lien de connexion est parti par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
       `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
       `Dites-moi quand je peux vous rappeler 🙂`,
 
@@ -911,6 +936,14 @@ function renderRessources(lead) {
   } else {
     rows.push('<div class="res-muted">▶️ Replay : à venir</div>');
   }
+  // Note : ce que la personne reçoit par e-mail pour CETTE conférence
+  rows.push(
+    `<details class="mails-note" open><summary>🎁 Ce qu'elle reçoit par e-mail — ${L.label}</summary>` +
+    MAILS[webiTypeOf(lead)].map((m) =>
+      `<div class="mails-row"><span class="mails-quand">${m.quand}</span><span class="mails-quoi">${m.quoi}</span></div>`).join('') +
+    `<div class="mails-exp">Expéditeur : <b>${EXPEDITEUR}</b> — c'est l'adresse à ajouter aux contacts. ` +
+    `À regarder aussi dans <b>Spam</b> et <b>Promotions</b>.</div></details>`
+  );
   box.innerHTML = rows.join('');
 }
 
