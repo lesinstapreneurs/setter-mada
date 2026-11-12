@@ -23,19 +23,25 @@ const LINKS = {
 function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'social'; }
 
 /* ── Ce que la personne reçoit par e-mail, par conférence ──────────────
-   Relevé dans Systeme.io le 12/11/2026 (campagnes « Email de bienvenue » et
-   « Emails post webi »). À mettre à jour ici si les e-mails changent.
+   Les cadeaux d'avant-conférence partent d'EverWebinar ; les e-mails d'après
+   partent de Systeme.io. Relevé le 12/11/2026 (e-mails réellement reçus par
+   les inscrits + campagnes Systeme.io). À mettre à jour ici s'ils changent.
    Affiché en haut de chaque fiche, pour que Sylvie l'ait sous les yeux.   */
 const EXPEDITEUR = 'Les Instapreneurs · contact@instapreneurpro.fr';
 const MAILS = {
   social: [
-    { quand: 'À l\'inscription', quoi: 'E-mail « ✅ Vous êtes inscrit (et voici votre 1er cadeau 🎁) » : le lien de la conférence + le bonus <b>« Les 10 règles d\'or »</b> (PDF à télécharger) pour poser des bases solides sur les réseaux sociaux.' },
-    { quand: 'Pendant la conférence', quoi: 'Une <b>surprise réservée aux participants en direct</b> — elle n\'est pas envoyée avec le replay.' },
+    { quand: 'À l\'inscription', quoi: 'E-mail « Votre place est confirmée 🎁 (et un petit cadeau) » : le lien de la conférence + <b>« Les 10 règles d\'or »</b> (PDF). Capucine y demande aussi de répondre avec son secteur d\'activité.' },
+    { quand: 'Les jours suivants', quoi: 'E-mail « Sophie avait 600 abonnés et aucun client… » : un <b>guide pratique pour poser son univers visuel</b> (exercice à télécharger).' },
+    { quand: 'Le jour J, 10h', quoi: 'E-mail « Préparez-vous pour ce soir ! Surprise 🎁 » : un <b>carnet de notes + 5 astuces incontournables pour Instagram</b>.' },
+    { quand: 'Rappels', quoi: 'La veille (« Demain soir 20h — vous êtes toujours là ? »), 1 h avant et à 19h45, avec le lien.' },
     { quand: 'Après, si présent·e', quoi: 'Lundi 21h30 : le récap de la méthode ICCP et le lien pour réserver l\'appel.' },
     { quand: 'Après, si absent·e', quoi: 'Le lien du replay.' },
   ],
   ia: [
-    { quand: 'À l\'inscription', quoi: 'E-mail de confirmation avec le lien de la conférence. <b>Aucun bonus à télécharger n\'est paramétré dans Systeme.io pour la conférence IA</b> — ne pas en promettre.' },
+    { quand: 'À l\'inscription', quoi: 'E-mail « Vous êtes inscrit(e) ✅ (et voici votre 1er cadeau) » : le lien de la conférence + le <b>Glossaire IA — les 15 mots clés</b> expliqués simplement.' },
+    { quand: 'Avant la conférence', quoi: 'Un <b>Audit IA Express</b> à remplir : il sert pendant la conférence, à garder sous les yeux.' },
+    { quand: 'Rappels', quoi: 'Le jour J à 10h (« C\'est ce soir ! Préparez-vous pour 20h 🚀 »), 1 h avant et à 19h45, avec le lien.' },
+    { quand: 'Pendant la conférence', quoi: 'Une <b>surprise réservée aux participants en direct</b>.' },
     { quand: 'Après, si présent·e', quoi: 'Mercredi 21h30 : le récap de la méthode AC2A (Auditer, Créer, Analyser, Automatiser), le replay et le lien pour réserver l\'appel.' },
     { quand: 'Après, si absent·e', quoi: 'Le replay, disponible jusqu\'au dimanche.' },
   ],
@@ -117,8 +123,8 @@ const SPEECHES = {
     // Les e-mails partent tout seuls : on prévient, sinon ils dorment dans les spams.
     bonusInscrit: () =>
       `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong> et un ` +
-      `<strong>premier cadeau, nos « 10 règles d'or »</strong> pour bien démarrer sur les réseaux sociaux. ` +
-      `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
+      `<strong>premier cadeau, nos « 10 règles d'or »</strong>. D'autres ressources arrivent d'ici la ` +
+      `conférence. Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
       `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
@@ -182,14 +188,15 @@ const SPEECHES = {
       `conférence</strong> : vous le regardez quand vous voulez. Et vous restez inscrit·e à celle ` +
       `de mercredi, si finalement vous vous libérez.`,
     bonusInscrit: () =>
-      `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong>, et vous ` +
-      `recevrez le récapitulatif après la conférence. Si vous ne les voyez pas, regardez bien dans vos ` +
-      `onglets <strong>Spam</strong> et <strong>Promotions</strong>. Et pour ne rien manquer, ` +
-      `<strong>ajoutez-nous à vos contacts</strong>.`,
+      `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong> et un ` +
+      `<strong>premier cadeau, notre Glossaire IA</strong> : les 15 mots clés expliqués simplement. ` +
+      `Vous recevrez aussi un <strong>Audit IA Express</strong> à remplir avant la conférence. ` +
+      `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
+      `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
     smsInscrit: (p) =>
       `${p || 'Bonjour'} ! Sylvie des Instapreneurs 👋\n` +
       `Bienvenue : vous êtes bien inscrit·e à notre conférence sur l'intelligence artificielle, mercredi à 20h.\n` +
-      `Votre lien de connexion est parti par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
+      `Votre lien et votre cadeau (notre Glossaire IA) sont partis par e-mail : pensez à regarder dans Spam et Promotions, et ajoutez-nous à vos contacts.\n` +
       `J'ai essayé de vous joindre pour vous poser 3 petites questions et vous orienter au mieux.\n` +
       `Dites-moi quand je peux vous rappeler 🙂`,
 
