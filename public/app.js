@@ -30,17 +30,21 @@ function webiTypeOf(lead) { return lead && lead.type_webi === 'ia' ? 'ia' : 'soc
 const EXPEDITEUR = 'Les Instapreneurs · contact@instapreneurpro.fr';
 const MAILS = {
   social: [
-    { quand: 'À l\'inscription', quoi: 'E-mail « Votre place est confirmée 🎁 (et un petit cadeau) » : le lien de la conférence + <b>« Les 10 règles d\'or »</b> (PDF). Capucine y demande aussi de répondre avec son secteur d\'activité.' },
-    { quand: 'Les jours suivants', quoi: 'E-mail « Sophie avait 600 abonnés et aucun client… » : un <b>guide pratique pour poser son univers visuel</b> (exercice à télécharger).' },
-    { quand: 'Le jour J, 10h', quoi: 'E-mail « Préparez-vous pour ce soir ! Surprise 🎁 » : un <b>carnet de notes + 5 astuces incontournables pour Instagram</b>.' },
-    { quand: 'Rappels', quoi: 'La veille (« Demain soir 20h — vous êtes toujours là ? »), 1 h avant et à 19h45, avec le lien.' },
+    { quand: 'À l\'inscription', quoi: '« Votre place est confirmée 🎁 (et un petit cadeau) » : le lien de la conférence + <b>« Les 10 règles d\'or »</b> (PDF). Capucine y demande aussi de répondre avec son secteur d\'activité.' },
+    { quand: 'Vendredi 20h', quoi: '« Ce que font différemment les entrepreneurs qui obtiennent des résultats sur Instagram » : le <b>guide introspectif « Qui suis-je ? »</b>.' },
+    { quand: 'Samedi 11h', quoi: '« Sophie avait 600 abonnés et aucun client… » : le <b>guide « Identité forte »</b> pour poser son univers visuel.' },
+    { quand: 'Dimanche 19h', quoi: '« Demain soir 20h — vous êtes toujours là ? » : la <b>liste d\'idées de posts</b> de Capucine + les liens vers les bonus précédents (« Qui suis-je ? », <b>« Le Mindset gagnant »</b>, « Identité forte »).' },
+    { quand: 'Lundi 10h', quoi: '« Préparez-vous pour ce soir ! Surprise 🎁 » : le <b>carnet de notes + 5 astuces incontournables pour Instagram</b>.' },
+    { quand: 'Lundi soir', quoi: 'Rappels avec le lien : 1 h avant (« Dans 1 heure — le lien est ici ⏳ ») et à 19h45.' },
     { quand: 'Après, si présent·e', quoi: 'Lundi 21h30 : le récap de la méthode ICCP et le lien pour réserver l\'appel.' },
     { quand: 'Après, si absent·e', quoi: 'Le lien du replay.' },
+    { quand: 'Inscrite tard ?', quoi: 'Les e-mails partent à jour fixe : une personne inscrite le week-end ne reçoit pas ceux d\'avant. L\'e-mail du dimanche redonne les liens des bonus.' },
   ],
   ia: [
-    { quand: 'À l\'inscription', quoi: 'E-mail « Vous êtes inscrit(e) ✅ (et voici votre 1er cadeau) » : le lien de la conférence + le <b>Glossaire IA — les 15 mots clés</b> expliqués simplement.' },
-    { quand: 'Avant la conférence', quoi: 'Un <b>Audit IA Express</b> à remplir : il sert pendant la conférence, à garder sous les yeux.' },
-    { quand: 'Rappels', quoi: 'Le jour J à 10h (« C\'est ce soir ! Préparez-vous pour 20h 🚀 »), 1 h avant et à 19h45, avec le lien.' },
+    { quand: 'À l\'inscription', quoi: '« Vous êtes inscrit(e) ✅ (et voici votre 1er cadeau) » : le lien de la conférence + le <b>Glossaire IA — les 15 mots clés</b> expliqués simplement.' },
+    { quand: 'Mardi 10h', quoi: '« 5 minutes pour découvrir ce que l\'IA peut faire pour vous (+ Cadeau 🎁) » : l\'<b>Audit IA Express</b>, un PDF à remplir pour repérer les tâches que l\'IA peut prendre en charge. Il sert pendant la conférence.' },
+    { quand: 'Mercredi 10h', quoi: '« C\'est ce soir ! Préparez-vous pour 20h 🚀 » : les rappels pratiques et le lien.' },
+    { quand: 'Mercredi soir', quoi: 'Rappels avec le lien : 1 h avant et à 19h45.' },
     { quand: 'Pendant la conférence', quoi: 'Une <b>surprise réservée aux participants en direct</b>.' },
     { quand: 'Après, si présent·e', quoi: 'Mercredi 21h30 : le récap de la méthode AC2A (Auditer, Créer, Analyser, Automatiser), le replay et le lien pour réserver l\'appel.' },
     { quand: 'Après, si absent·e', quoi: 'Le replay, disponible jusqu\'au dimanche.' },
@@ -190,7 +194,7 @@ const SPEECHES = {
     bonusInscrit: () =>
       `— Notez aussi : vous avez reçu par e-mail <strong>votre lien de connexion</strong> et un ` +
       `<strong>premier cadeau, notre Glossaire IA</strong> : les 15 mots clés expliqués simplement. ` +
-      `Vous recevrez aussi un <strong>Audit IA Express</strong> à remplir avant la conférence. ` +
+      `Mardi, vous recevrez aussi un <strong>Audit IA Express</strong> à remplir avant la conférence. ` +
       `Si vous ne les voyez pas, regardez bien dans vos onglets <strong>Spam</strong> et ` +
       `<strong>Promotions</strong>. Et pour ne rien manquer, <strong>ajoutez-nous à vos contacts</strong>.`,
     smsInscrit: (p) =>
