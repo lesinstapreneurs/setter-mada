@@ -14,6 +14,7 @@
   <nav class="tabs">
     <button class="tab active" id="tabAppels" onclick="switchView('appels')">📞 File d'appel</button>
     <button class="tab" id="tabStats" onclick="switchView('stats')">📊 Statistiques</button>
+    <button class="tab" id="tabFinancements" onclick="switchView('financements')">💶 Financements</button>
   </nav>
 </header>
 
@@ -29,14 +30,10 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="dot-live"></div>
-      <span class="sidebar-title">File d'appel</span>
+      <span class="sidebar-title">File d'appel <span class="sidebar-scope">absents webi</span></span>
       <span class="leads-count" id="leadsCount">0</span>
     </div>
     <div class="stats-bar">
-      <div class="stat-cell">
-        <div class="stat-val green" id="statPresents">0</div>
-        <div class="stat-lbl">Présents</div>
-      </div>
       <div class="stat-cell">
         <div class="stat-val orange" id="statAbsents">0</div>
         <div class="stat-lbl">Absents</div>
@@ -344,6 +341,102 @@
 
 </div><!-- /layout -->
 </div><!-- /viewAppels -->
+
+<!-- ════════════════ VUE 3 — FINANCEMENTS ════════════════ -->
+<div class="view" id="viewFinancements">
+  <div class="fin-page">
+    <h2 class="stats-title">Les financements — qui a droit à quoi</h2>
+    <p class="stats-sub">Sert à <b>orienter</b>, pas à chiffrer. Aucun montant ne s'annonce au téléphone.</p>
+
+    <div class="fin-regle">
+      <b>La règle, en une phrase :</b> tu identifies la <b>situation professionnelle</b>, tu nommes le
+      <b>dispositif possible</b>, et tu laisses Jordan faire les chiffres et le montage du dossier.
+      <br><b>Jamais de montant, jamais de reste à charge, jamais de date butoir.</b>
+    </div>
+
+    <h3 class="fin-h3">La question qui ouvre tout</h3>
+    <div class="fin-quote">« Sans indiscrétion de ma part, vous êtes <b>salarié·e</b>, <b>indépendant·e</b>,
+      <b>en recherche d'emploi</b>, ou <b>retraité·e</b> ? »</div>
+    <p class="fin-note">C'est la réponse à cette question qui détermine le dispositif. Pose-la
+      <b>avant</b> toute discussion d'argent, et note-la dans la fiche.</p>
+
+    <h3 class="fin-h3">Le tableau d'orientation</h3>
+    <table class="fin-table">
+      <thead><tr><th>Sa situation</th><th>Dispositif à nommer</th><th>Ce que tu peux dire</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Salarié·e</b> (privé)</td>
+          <td><b>CPF</b> — et éventuellement l'<b>OPCO</b> de son entreprise, ou le plan de développement
+            des compétences si l'employeur finance</td>
+          <td>« Vous avez un compte CPF alimenté par vos heures travaillées. Jordan regarde avec vous
+            ce qui est mobilisable. »</td>
+        </tr>
+        <tr>
+          <td><b>Indépendant·e — commerçant, gérant, agent commercial</b><br><span class="fin-ex">(mandataire immobilier, e-commerce, artisan commerçant…)</span></td>
+          <td><b>CPF</b> + <b>AGEFICE</b> <span class="fin-ex">(fonds de formation des dirigeants non salariés du commerce et des services)</span></td>
+          <td>« En tant que non-salarié, vous cotisez à un fonds de formation — l'AGEFICE pour votre
+            activité. Jordan vous dira ce qui est mobilisable. »</td>
+        </tr>
+        <tr>
+          <td><b>Profession libérale</b><br><span class="fin-ex">(thérapeute, coach, consultant…)</span></td>
+          <td><b>CPF</b> + <b>FIF PL</b> <span class="fin-ex">(fonds des professions libérales)</span></td>
+          <td>« Les libéraux ont leur propre fonds, le FIF PL. Jordan regarde ça avec vous. »</td>
+        </tr>
+        <tr>
+          <td><b>Micro-entrepreneur·se</b></td>
+          <td><b>CPF</b> + fonds selon l'activité <span class="fin-ex">(AGEFICE si commerce/services, FIF PL si libéral)</span> — à condition d'avoir déclaré du chiffre d'affaires</td>
+          <td>« Ça dépend de votre activité et de ce que vous avez déclaré — c'est exactement ce que
+            Jordan vérifie pendant les 30 minutes. »</td>
+        </tr>
+        <tr>
+          <td><b>En recherche d'emploi</b></td>
+          <td><b>CPF</b> + <b>France Travail</b> <span class="fin-ex">(aide individuelle à la formation)</span></td>
+          <td>« Il y a le CPF, et France Travail peut intervenir en complément. Jordan monte le dossier
+            avec vous. »</td>
+        </tr>
+        <tr>
+          <td><b>Retraité·e</b> ou <b>sans activité</b></td>
+          <td>Souvent <b>aucun dispositif</b> — reste le financement personnel</td>
+          <td>« Dans votre situation il n'y a souvent pas de financement mobilisable. Je préfère vous le
+            dire tout de suite. » <b>Ne force pas le rendez-vous.</b></td>
+        </tr>
+        <tr>
+          <td><b>Fonctionnaire</b></td>
+          <td><b>CPF</b> (règles différentes du privé)</td>
+          <td>« Le CPF existe aussi dans la fonction publique, avec ses propres règles. Jordan regarde
+            avec vous. »</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="fin-h3">Ce que tu renvoies systématiquement à Jordan</h3>
+    <ul class="fin-list">
+      <li>Le <b>montant des droits</b> de la personne — personne ne peut le connaître à sa place.</li>
+      <li>Le <b>reste à charge</b>, quel qu'il soit.</li>
+      <li>Le <b>tarif</b> de l'accompagnement.</li>
+      <li>Le <b>montage du dossier</b>, les pièces, les délais.</li>
+    </ul>
+    <div class="fin-quote">« Je ne peux pas vous donner un chiffre approximatif.
+      <b>C'est Jordan qui vous le dira précisément</b>, avec ce qui est finançable dans votre cas. »</div>
+
+    <h3 class="fin-h3">Si on te demande le prix</h3>
+    <p class="fin-note">Tu réponds franchement que <b>c'est un accompagnement payant</b> et que
+      <b>l'échange avec Jordan, lui, est gratuit et sans engagement</b>. Tu ne donnes pas de chiffre.</p>
+
+    <div class="fin-warn">
+      <b>⚠️ À ne jamais dire</b>
+      <ul>
+        <li>Un montant de formation ou de reste à charge, même « à peu près ».</li>
+        <li>« C'est pris en charge à 100 % » / « vous n'aurez rien à payer ».</li>
+        <li>« Les règles changent le mois prochain », « c'est le dernier moment », une date butoir.</li>
+        <li>« Vous pourrez vivre de votre activité » — aucune promesse de résultat.</li>
+      </ul>
+    </div>
+
+    <p class="fin-foot">Cette page oriente vers le bon interlocuteur. Elle ne remplace pas une grille
+      tarifaire : à ce jour, <b>aucun montant validé n'est à annoncer au téléphone</b>.</p>
+  </div>
+</div>
 
 <!-- ════════════════ VUE 2 — STATISTIQUES ════════════════ -->
 <div class="view" id="viewStats">

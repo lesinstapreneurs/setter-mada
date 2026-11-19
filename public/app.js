@@ -569,6 +569,11 @@ async function loadLeads() {
     demoMode = true;
     document.getElementById('demoBanner').classList.add('show');
   }
+  // La synchro a pu faire sortir du périmètre la fiche ouverte : on la ferme.
+  if (currentLead) {
+    const maj = leads.find((l) => l.id === currentLead.id);
+    if (!maj || !dansPerimetre(maj)) closeLead();
+  }
   renderLeads();
   updateSidebarStats();
 }
@@ -618,27 +623,18 @@ function chronoOf(l) {
 }
 const BASE_TITLE = document.title;
 function updateInscritCount() {
-  const n = leads.filter(inscritATraiter).length;
+  // Les inscrits sont hors périmètre : le compteur retombe naturellement à 0.
+  const n = leadsDuPerimetre().filter(inscritATraiter).length;
   const el = document.getElementById('inscritCount');
   if (el) { el.textContent = n; el.classList.toggle('is-hidden', n === 0); }
   document.title = (n ? `(${n}) ` : '') + BASE_TITLE;
 }
 // Ajoute à la liste les inscriptions arrivées depuis le chargement de la page.
+// Les inscriptions d'avant-conférence sont hors périmètre depuis le 19/11 :
+// on ne va plus les chercher et on n'alerte plus dessus. La fonction reste
+// appelée par la minuterie — elle ne sert plus qu'à rafraîchir l'affichage.
 async function refreshInscrits() {
-  if (demoMode) { renderLeads(); return; }
-  try {
-    const fresh = await api('/api/leads/inscrits');
-    const connus = new Set(leads.map((l) => l.id));
-    const nouveaux = fresh.filter((l) => !connus.has(l.id));
-    if (nouveaux.length) {
-      leads.push(...nouveaux);
-      const n = nouveaux[0];
-      showToast(nouveaux.length === 1
-        ? `🆕 Nouvelle inscription : ${n.prenom || n.nom} (${webiTypeOf(n) === 'ia' ? 'IA' : 'réseaux sociaux'})`
-        : `🆕 ${nouveaux.length} nouvelles inscriptions à rappeler`);
-    }
-  } catch { /* réseau : on réessaiera à la minute suivante */ }
-  renderLeads(); // rafraîchit aussi les chronos
+  renderLeads();
 }
 // Normalise un téléphone FR : enlève tout sauf chiffres, l'indicatif 33 et le 0
 // de tête → forme canonique de 9 chiffres (ex: 33652379895 / 0652379895 → 652379895)
@@ -699,6 +695,15 @@ function leadCardHtml(l) {
     </div>`;
 }
 
+/* ── Périmètre de la setteuse (décision du 19/11/2026) ──────────────────
+   Elle n'appelle QUE les absents au webinaire. Les présents et les inscrits
+   d'avant-conférence sortent complètement de l'application : ni dans la file,
+   ni dans la recherche, et leur fiche ne s'ouvre pas. Filtre volontairement
+   dur — un rappel sur ces populations passe par quelqu'un d'autre.         */
+function dansPerimetre(l) { return !!l && l.webi === 'Absent'; }
+// Tous les rendus partent de là : aucune liste ne se construit sur `leads` brut.
+function leadsDuPerimetre() { return leads.filter(dansPerimetre); }
+
 const sortPostWebi = (a, b) => (a.webi === b.webi ? b.score - a.score : a.webi === 'Présent' ? -1 : 1);
 
 /* ── Ce qui est affiché en grand, ce qui est replié ─────────────────────
@@ -724,51 +729,29 @@ function renderLeads() {
   const q = searchText.trim();
   const list = document.getElementById('leadsList');
   updateInscritCount();
+  const vide = (txt) => `<div class="list-placeholder">${txt}</div>`;
 
-  // Vue par défaut : DEUX COLONNES. À gauche les inscrits à rappeler tout de
-  // suite (conférence à venir), à droite les appels d'après-conférence.
+  // Vue par défaut : une seule liste d'absents. Les absents des derniers jours
+  // en grand, les plus anciens repliés — on ne montre en grand que ce qui vaut
+  // un appel maintenant, sans rien supprimer.
   if (!q && currentFilter === 'appeler') {
-    const inscrits = leads.filter((l) => leadCategory(l) === 'inscrit')
-      .sort((a, b) => chronoOf(b).ts - chronoOf(a).ts);          // le plus récent en premier
-    const aFaire = inscrits.filter(inscritATraiter);
-    const faits = inscrits.filter((l) => !inscritATraiter(l));   // eus au téléphone, en attente de la conférence
-    const post = leads.filter((l) => leadCategory(l) === 'appeler').sort(sortPostWebi);
-    // En grand : les PRÉSENTS récents. Repliés : absents récents, puis anciens.
+    const post = leadsDuPerimetre()
+      .filter((l) => leadCategory(l) === 'appeler')
+      .sort((a, b) => b.score - a.score);
     const recents = post.filter((l) => ageJours(l) <= JOURS_RECENTS);
-    const presents = recents.filter((l) => l.webi === 'Présent');
-    const absents = recents.filter((l) => l.webi !== 'Présent');
     const anciens = post.filter((l) => ageJours(l) > JOURS_RECENTS);
-    ordreNow = aFaire.map((l) => l.id);
-    ordrePost = [...presents, ...absents, ...anciens].map((l) => l.id);
-    document.getElementById('leadsCount').textContent = aFaire.length + presents.length;
+    ordreNow = [];
+    ordrePost = [...recents, ...anciens].map((l) => l.id);
+    document.getElementById('leadsCount').textContent = recents.length;
 
-    // On garde la position de défilement de chaque colonne d'un rendu à l'autre
-    const scroll = ['colNowBody', 'colPostBody'].map((id) => (document.getElementById(id) || {}).scrollTop || 0);
-    const vide = (txt) => `<div class="list-placeholder">${txt}</div>`;
-    list.className = 'leads-list board';
+    const scroll = list.scrollTop || 0;   // on garde la position de défilement
+    list.className = 'leads-list';
     list.innerHTML =
-      `<section class="col col-now">
-        <header class="col-head">
-          <div class="col-title">🔥 À rappeler tout de suite <span class="col-count${aFaire.length ? ' hot' : ''}">${aFaire.length}</span></div>
-          <div class="col-sub">Viennent de s'inscrire — conférence à venir. Le plus récent en haut.</div>
-        </header>
-        <div class="col-body" id="colNowBody">
-          ${aFaire.length ? aFaire.map(leadCardHtml).join('') : vide('✅ Tous les nouveaux inscrits ont été appelés.')}
-          ${pli('pliFaits', '✔ Déjà appelés — en attente de la conférence', faits)}
-        </div>
-      </section>
-      <section class="col col-post">
-        <header class="col-head">
-          <div class="col-title">📞 Après la conférence <span class="col-count">${presents.length}</span></div>
-          <div class="col-sub">Présents des ${JOURS_RECENTS} derniers jours — les plus chauds. Le reste est replié en dessous.</div>
-        </header>
-        <div class="col-body" id="colPostBody">
-          ${presents.length ? presents.map(leadCardHtml).join('') : vide('🎉 Tous les présents récents ont été appelés.')}
-          ${pli('pliAbsents', `📭 Absents des ${JOURS_RECENTS} derniers jours`, absents)}
-          ${pli('pliAnciens', `🕰 Plus de ${JOURS_RECENTS} jours`, anciens)}
-        </div>
-      </section>`;
-    ['colNowBody', 'colPostBody'].forEach((id, i) => { document.getElementById(id).scrollTop = scroll[i]; });
+      (recents.length
+        ? recents.map(leadCardHtml).join('')
+        : vide(`🎉 Tous les absents des ${JOURS_RECENTS} derniers jours ont été appelés.`))
+      + pli('pliAnciens', `🕰 Absents de plus de ${JOURS_RECENTS} jours`, anciens);
+    list.scrollTop = scroll;
     list.querySelectorAll('details.col-done').forEach((d) =>
       d.addEventListener('toggle', () => {
         if (plisOuverts[d.id] === d.open) return;
@@ -778,14 +761,17 @@ function renderLeads() {
     return;
   }
 
-  // Recherche (globale) ou liste filtrée : une seule liste
-  const visibles = (q ? leads.filter((l) => matchSearch(l, q))
-                      : leads.filter((l) => leadCategory(l) === currentFilter)).sort(sortPostWebi);
+  // Recherche ou autre filtre : une seule liste, toujours dans le périmètre.
+  const visibles = leadsDuPerimetre()
+    .filter((l) => (q ? matchSearch(l, q) : leadCategory(l) === currentFilter))
+    .sort((a, b) => b.score - a.score);
+  ordreNow = [];
+  ordrePost = visibles.map((l) => l.id);
   document.getElementById('leadsCount').textContent = visibles.length;
   list.className = 'leads-list';
   list.innerHTML = visibles.length
     ? visibles.map(leadCardHtml).join('')
-    : `<div class="list-placeholder">${q ? '🔍 Aucun lead pour cette recherche.' : 'Aucun lead dans ce filtre.'}</div>`;
+    : vide(q ? '🔍 Aucun absent pour cette recherche.' : 'Aucun absent dans ce filtre.');
 }
 
 // Change le filtre actif et rafraîchit la liste
@@ -810,21 +796,20 @@ function clearSearch() {
 }
 
 async function updateSidebarStats() {
-  let presents, absents, rdv, taux;
+  let absents, rdv, taux;
   if (demoMode) {
     const actifs = leads.filter((l) => l.statut !== '✅ RDV booké');
-    presents = actifs.filter((l) => l.webi === 'Présent').length;
     absents = actifs.filter((l) => l.webi === 'Absent').length;
     rdv = rdvBookesDemo;
     taux = leads.length ? Math.round((rdv / leads.length) * 100) + '%' : '0%';
   } else {
     try {
       const s = await api('/api/stats');
-      presents = s.presents_webi; absents = s.absents_webi;
+      absents = s.absents_webi;
       rdv = s.rdv_bookes; taux = s.taux_conversion + '%';
     } catch { return; }
   }
-  document.getElementById('statPresents').textContent = presents;
+  // La tuile « Présents » a été retirée : hors périmètre.
   document.getElementById('statAbsents').textContent = absents;
   document.getElementById('statRdv').textContent = rdv;
   document.getElementById('statTaux').textContent = taux;
@@ -1106,6 +1091,12 @@ function openLead(id) {
   flushAutosave(); // sauvegarde le lead précédent avant de changer
   const next = leads.find((l) => l.id === id);
   if (!next) return;
+  // Garde-fou : une fiche hors périmètre ne s'ouvre pas, même atteinte autrement
+  // (ancien lien, tag passé à « présent » depuis la dernière synchro).
+  if (!dansPerimetre(next)) {
+    showToast('🔒 Hors périmètre : tu n\'appelles que les absents au webinaire');
+    return;
+  }
   currentLead = next;
 
   call = newCallState();
@@ -1220,9 +1211,9 @@ async function nextLead() {
   vues.add(id);
   flushAutosave();
   renderLeads(); // recalcule l'ordre des deux colonnes
-  const file = isInscrit(currentLead) ? ordreNow : ordrePost;
+  const file = ordrePost;   // une seule file désormais : les absents
   const suivant = file.find((x) => x !== id && !vues.has(x));
-  if (!suivant) { vues.clear(); closeLead(); showToast('✅ Plus de fiche dans cette colonne'); return; }
+  if (!suivant) { vues.clear(); closeLead(); showToast('✅ Plus de fiche dans la file'); return; }
   openLead(suivant);
 }
 
@@ -1789,10 +1780,13 @@ async function saveAll() {
 
 /* ── Vue stats ─────────────────────────────────────────────────────────── */
 function switchView(name) {
-  document.getElementById('viewAppels').classList.toggle('active', name === 'appels');
-  document.getElementById('viewStats').classList.toggle('active', name === 'stats');
-  document.getElementById('tabAppels').classList.toggle('active', name === 'appels');
-  document.getElementById('tabStats').classList.toggle('active', name === 'stats');
+  for (const v of ['appels', 'stats', 'financements']) {
+    const maj = v.charAt(0).toUpperCase() + v.slice(1);
+    const vue = document.getElementById('view' + maj);
+    const tab = document.getElementById('tab' + maj);
+    if (vue) vue.classList.toggle('active', name === v);
+    if (tab) tab.classList.toggle('active', name === v);
+  }
   if (name === 'stats') loadStats();
 }
 
